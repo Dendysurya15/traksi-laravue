@@ -20,7 +20,7 @@ export default {
             activeLink: "Dashboard",
             links: [
                 { name: "Dashboard", icon: "HomeIcon" },
-                { name: "Profile", icon: "ChevronDownIcon" },
+                // { name: "Profile", icon: "ChevronDownIcon" },
             ],
         };
     },

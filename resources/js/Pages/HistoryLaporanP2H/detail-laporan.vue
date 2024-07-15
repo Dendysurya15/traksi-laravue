@@ -70,6 +70,7 @@ const selectedIndex = ref(0);
 const selectedImage = ref<string | null>(null);
 const selectedNameImage = ref<string | null>(null);
 const selectedNameImageFotoUnit = ref<string | null>(null);
+const imageExists = ref<boolean[]>([]);
 const {
     data: fetchedData,
     error: fetchError,
@@ -79,6 +80,7 @@ const {
 
 watch(fetchedData, (newData) => {
     kerusakan_unit.value = newData; // Assuming fetchedData is the actual data you want to assign
+    checkImages();
 });
 
 watch(fetchError, (newError) => {
@@ -123,6 +125,20 @@ watchOnce(emblaMainApi, (emblaMainApi) => {
 function backToTable() {
     emit("is-back-to-table");
 }
+function checkImages() {
+    if (kerusakan_unit.value) {
+        kerusakan_unit.value.forEach((item, index) => {
+            const img = new Image();
+            img.onload = () => {
+                imageExists.value[index] = true;
+            };
+            img.onerror = () => {
+                imageExists.value[index] = false;
+            };
+            img.src = `/img/documents/LaporP2H/${item.foto}`;
+        });
+    }
+}
 </script>
 
 <template>
@@ -148,7 +164,7 @@ function backToTable() {
                 <template v-else-if="fetchError">
                     <Badge variant="secondary" class="text-sm cursor-pointer">
                         <ExclamationTriangleIcon class="w-5 h-5 mr-2" />
-                        Error fetching Status
+                        Status Error
                     </Badge>
                 </template>
                 <template v-else>
@@ -164,7 +180,7 @@ function backToTable() {
                 >
             </div>
             <div class="flex gap-2">
-                <TooltipProvider>
+                <!-- <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger as-child>
                             <MapIcon
@@ -175,66 +191,55 @@ function backToTable() {
                             <p>Koordinat Ketika User Upload</p>
                         </TooltipContent>
                     </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger as-child>
-                            <Dialog>
-                                <div class="flex items-center">
-                                    <DialogTrigger as-child>
-                                        <PhotoIcon
-                                            @click="
-                                                handleIconClickImageFotoUnitPreview(
-                                                    data.foto_unit
-                                                )
-                                            "
-                                            class="w-7 h-7 text-blue-950 cursor-pointer"
-                                        />
-                                    </DialogTrigger>
-                                </div>
+                </TooltipProvider> -->
 
-                                <DialogContent class="max-w-7xl rounded">
-                                    <DialogHeader>
-                                        <div
-                                            class="flex justify-center items-center"
-                                        >
-                                            <DialogTitle>{{
-                                                selectedNameImageFotoUnit
-                                            }}</DialogTitle>
-                                            <div
-                                                class="flex items-center space-x-2"
-                                            >
-                                                <!-- Additional Icon -->
-                                                <InformationCircleIcon
-                                                    @click="
-                                                        handleIconClickImagePreview
-                                                    "
-                                                    class="w-6 h-6 text-gray-500 hover:text-gray-700 cursor-pointer"
-                                                />
-                                            </div>
-                                        </div>
-                                    </DialogHeader>
-                                    <div
-                                        class="flex items-center justify-center object-cover"
-                                    >
-                                        <img
-                                            v-if="selectedImage"
-                                            :src="selectedImage"
-                                            alt="Selected Image"
-                                            class="object-contain max-h-full"
-                                        />
-                                    </div>
-                                    <div
-                                        class="flex items-center justify-center"
-                                    ></div>
-                                </DialogContent>
-                            </Dialog>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Foto Unit</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
+                <Dialog>
+                    <div class="flex items-center">
+                        <DialogTrigger as-child>
+                            <Badge
+                                class="bg-gray-200 gap-2 rounded-sm text-black hover:bg-gray-300 cursor-pointer"
+                            >
+                                Foto Unit
+                                <PhotoIcon
+                                    @click="
+                                        handleIconClickImageFotoUnitPreview(
+                                            data.foto_unit
+                                        )
+                                    "
+                                    class="w-7 h-7 text-blue-950 cursor-pointer"
+                                />
+                            </Badge>
+                        </DialogTrigger>
+                    </div>
+
+                    <DialogContent class="max-w-7xl rounded">
+                        <DialogHeader>
+                            <div class="flex justify-center items-center">
+                                <DialogTitle>{{
+                                    selectedNameImageFotoUnit
+                                }}</DialogTitle>
+                                <div class="flex items-center space-x-2">
+                                    <!-- Additional Icon -->
+                                    <InformationCircleIcon
+                                        @click="handleIconClickImagePreview"
+                                        class="w-6 h-6 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                    />
+                                </div>
+                            </div>
+                        </DialogHeader>
+                        <div
+                            class="flex items-center justify-center object-cover"
+                        >
+                            <img
+                                v-if="selectedImage"
+                                :src="selectedImage"
+                                alt="Terjadi kesalahan silahkan hubungi Tim Pengembang!"
+                                class="object-contain max-h-full"
+                            />
+                        </div>
+                        <div class="flex items-center justify-center"></div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
         <Separator class="mt-2" />
@@ -289,11 +294,30 @@ function backToTable() {
                                                         <CardContent
                                                             class="flex items-center justify-center p-0"
                                                         >
-                                                            <img
-                                                                :src="`/img/documents/LaporP2H/${item.foto}`"
-                                                                alt="Kerusakan Image"
-                                                                class="object-cover w-full h-full"
-                                                            />
+                                                            <div
+                                                                class="embla__slide__thumbnail"
+                                                            >
+                                                                <img
+                                                                    v-if="
+                                                                        imageExists[
+                                                                            index
+                                                                        ]
+                                                                    "
+                                                                    :src="`/img/documents/LaporP2H/${item.foto}`"
+                                                                    alt="Kerusakan Image"
+                                                                    class="object-cover w-full h-full"
+                                                                />
+                                                                <div
+                                                                    v-else
+                                                                    class="w-full h-96 flex gap-2 items-center justify-center text-black font-bold"
+                                                                >
+                                                                    <PhotoIcon
+                                                                        class="w-7 h-7 text-gray-900 cursor-pointer"
+                                                                    />Image
+                                                                    tidak
+                                                                    tersedia
+                                                                </div>
+                                                            </div>
                                                         </CardContent>
                                                     </Card>
                                                 </div>
@@ -316,6 +340,11 @@ function backToTable() {
                                                 </div> -->
                                                 <DialogTrigger as-child>
                                                     <ArrowsPointingOutIcon
+                                                        v-if="
+                                                            imageExists[
+                                                                selectedIndex
+                                                            ]
+                                                        "
                                                         @click="
                                                             handleIconClickImagePreview
                                                         "
@@ -392,11 +421,29 @@ function backToTable() {
                                                     <CardContent
                                                         class="flex aspect-square items-center justify-center p-6"
                                                     >
-                                                        <img
-                                                            :src="`/img/documents/LaporP2H/${item.foto}`"
-                                                            alt="Kerusakan Thumbnail"
-                                                            class="object-cover w-full h-full"
-                                                        />
+                                                        <div
+                                                            class="embla__slide__thumbnail"
+                                                        >
+                                                            <img
+                                                                v-if="
+                                                                    imageExists[
+                                                                        index
+                                                                    ]
+                                                                "
+                                                                :src="`/img/documents/LaporP2H/${item.foto}`"
+                                                                alt="Kerusakan Image"
+                                                                class="object-cover w-full h-full"
+                                                            />
+                                                            <div
+                                                                v-else
+                                                                class="w-full h-16 flex gap-2 items-center justify-center text-black font-bold text-xs"
+                                                            >
+                                                                <PhotoIcon
+                                                                    class="w-7 h-7 text-gray-900 cursor-pointer"
+                                                                />Image tidak
+                                                                tersedia
+                                                            </div>
+                                                        </div>
                                                     </CardContent>
                                                 </Card>
                                             </div>
@@ -408,7 +455,7 @@ function backToTable() {
                     </div>
                     <div class="col-span-1">
                         <p class="font-bold text-lg text-gray-800 mb-3">
-                            List Part/Bagian Terindikasi KerusakanUnit di Unit
+                            List Part/Bagian Terindikasi Kerusakan di Unit
                         </p>
 
                         <div class="overflow-y-auto" style="height: 550px">

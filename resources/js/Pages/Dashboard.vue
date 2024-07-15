@@ -12,11 +12,16 @@ import { PaginationMeta } from "@/types/pagination";
 import { LaporanP2H } from "@/types/laporanP2h";
 
 import DetailLaporanP2H from "@/Pages/HistoryLaporanP2H/detail-laporan.vue";
+import { useDateFormat, useNow } from "@vueuse/core";
+import { Badge } from "@/Components/ui/badge";
+import { ArrowPathIcon } from "@heroicons/vue/24/solid";
 
 const props = defineProps<{ data: LaporanP2H[] }>();
 const data = ref<LaporanP2H[]>(props.data);
 
-console.log(data);
+const live_tanggal = useDateFormat(useNow(), "dddd, M MMM YYYY  HH:mm:ss", {
+    locales: "id-ID",
+});
 const typeContentData = ref(""); // Reactive variable to store sharedActionType
 const detailContentData = ref(null);
 const isDetailContent = ref(false);
@@ -35,7 +40,6 @@ async function getData(page = 1, paginate = 10): Promise<void> {
         });
         data.value = response.data.data;
 
-        // console.log(response);
         pagination.value = {
             current_page: response.data.current_page,
             last_page: response.data.last_page,
@@ -64,8 +68,12 @@ function handleSharedActionDataChanged(newData) {
     detailContentData.value = newData;
 }
 
-function gas() {
+function checkBackToTable() {
     isDetailContent.value = false;
+}
+
+function refreshData() {
+    getData(pagination.value.current_page, pagination.value.per_page);
 }
 </script>
 
@@ -82,6 +90,23 @@ function gas() {
             <div class="mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div>
+                        <div
+                            class="px-5 pt-3 font-semibold text-2xl justify-start items-center flex"
+                        >
+                            History Laporan P2H -
+                            {{ live_tanggal }}
+                            <div class="cursor-pointer ml-3 text-sm">
+                                <Badge
+                                    class="bg-gray-200 text-black gap-2 hover:bg-gray-300"
+                                    @click="refreshData"
+                                >
+                                    Refresh
+                                    <ArrowPathIcon
+                                        class="w-5 h-5 text-green-600"
+                                    />
+                                </Badge>
+                            </div>
+                        </div>
                         <DataTable
                             v-if="!isDetailContent"
                             :columns="columns"
@@ -97,11 +122,10 @@ function gas() {
                             "
                         />
                         <div v-else class="p-5">
-                            <!-- </Button> -->
                             <DetailLaporanP2H
                                 :data="detailContentData"
                                 :typeContent="typeContentData"
-                                @is-back-to-table="gas"
+                                @is-back-to-table="checkBackToTable"
                             />
                         </div>
                     </div>

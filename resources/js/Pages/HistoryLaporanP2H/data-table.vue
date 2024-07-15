@@ -141,7 +141,7 @@ const firstPage = () => {
 const lastPage = () => {
     emit("fetch-data", props.pagination.last_page);
 };
-
+const globalFilter = ref("");
 watch(isActionTriggered, (newValue) => {
     emit("action-clicked");
     emit("shared-action-data-changed", sharedActionData);
@@ -156,19 +156,20 @@ const visibleColumnsCount = computed(() => {
                 !["actions", "select"].includes(column.id)
         ).length;
 });
+
+watch(globalFilter, (newValue) => {
+    table.setGlobalFilter(newValue || "");
+});
 </script>
 
 <template>
     <div class="p-3">
-        <div class="flex items-center justify-between py-4">
-            <div>
+        <div class="flex items-center justify-between pb-4">
+            <div class="flex items-center py-4">
                 <Input
                     class="max-w-sm"
-                    placeholder="Filter emails..."
-                    :model-value="table.getColumn('jenis_unit')?.getFilterValue() as string"
-                    @update:model-value="
-                        table.getColumn('jenis_unit')?.setFilterValue($event)
-                    "
+                    placeholder="Search ..."
+                    v-model="globalFilter"
                 />
             </div>
             <div>

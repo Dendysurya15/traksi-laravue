@@ -5,6 +5,7 @@ import { updateSharedState } from "@/lib/sharedDataState";
 import { LaporanP2H } from "@/types/laporanP2h";
 import { Checkbox } from "@/Components/ui/checkbox";
 import { ArrowsUpDownIcon } from "@heroicons/vue/24/solid";
+import { useDateFormat } from "@vueuse/core";
 import {
     Tooltip,
     TooltipContent,
@@ -83,6 +84,7 @@ export const columns: ColumnDef<LaporanP2H>[] = [
         enableHiding: false,
     },
     {
+        id: "tanggal_upload",
         accessorKey: "tanggal_upload",
         header: ({ column }) =>
             h(
@@ -97,8 +99,15 @@ export const columns: ColumnDef<LaporanP2H>[] = [
                     h(ArrowsUpDownIcon, { class: "ml-2 h-4 w-4" }),
                 ]
             ),
-        cell: ({ row }) =>
-            h("div", { class: "lowercase" }, row.getValue("tanggal_upload")),
+        cell: ({ row }) => {
+            const formattedDate = useDateFormat(
+                row.getValue("tanggal_upload"),
+                "dddd, D MMMM YYYY HH:mm",
+                { locales: "id-ID" }
+            );
+
+            return h("div", { class: "" }, formattedDate.value);
+        },
     },
     {
         accessorKey: "jenis_unit",
@@ -129,7 +138,7 @@ export const columns: ColumnDef<LaporanP2H>[] = [
                         column.toggleSorting(column.getIsSorted() === "asc"),
                 },
                 () => [
-                    "Jenis Unit",
+                    "Kode Unit",
                     h(ArrowsUpDownIcon, { class: "ml-2 h-4 w-4" }),
                 ]
             ),
@@ -145,6 +154,10 @@ export const columns: ColumnDef<LaporanP2H>[] = [
         accessorKey: "kerusakan_unit_part",
         cell: ({ row }) =>
             renderKerusakanBadge(row.getValue("kerusakan_unit_part")),
+    },
+    {
+        header: "Driver / User",
+        accessorKey: "user",
     },
     {
         id: "actions",

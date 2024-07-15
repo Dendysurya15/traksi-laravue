@@ -165,7 +165,17 @@ watch(globalFilter, (newValue) => {
 <template>
     <div class="p-3">
         <div class="flex items-center justify-between pb-4">
-            <div class="flex items-center py-4">
+            <div class="flex items-center">
+                <Input
+                    class="max-w-sm mr-1"
+                    placeholder="Filter Tanggal Upload ..."
+                    :model-value="table.getColumn('tanggal_upload')?.getFilterValue() as string"
+                    @update:model-value="
+                        table
+                            .getColumn('tanggal_upload')
+                            ?.setFilterValue($event)
+                    "
+                />
                 <Input
                     class="max-w-sm"
                     placeholder="Search ..."
@@ -291,6 +301,7 @@ watch(globalFilter, (newValue) => {
                     class="flex w-[100px] items-center justify-center text-sm font-medium"
                 >
                     Page {{ props.pagination.current_page }} of
+
                     {{ props.pagination.last_page }}
 
                     <!-- Page {{ table.getState().pagination.pageIndex + 1 }} of

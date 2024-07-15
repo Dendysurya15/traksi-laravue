@@ -108,6 +108,15 @@ export const columns: ColumnDef<LaporanP2H>[] = [
 
             return h("div", { class: "" }, formattedDate.value);
         },
+        filterFn: (row, columnId, filterValue) => {
+            const rawDate = row.getValue(columnId);
+            const formattedDate = useDateFormat(
+                rawDate,
+                "dddd, D MMMM YYYY HH:mm",
+                { locales: "id-ID" }
+            ).value;
+            return formattedDate.includes(filterValue);
+        },
     },
     {
         accessorKey: "jenis_unit",
@@ -142,12 +151,22 @@ export const columns: ColumnDef<LaporanP2H>[] = [
                     h(ArrowsUpDownIcon, { class: "ml-2 h-4 w-4" }),
                 ]
             ),
-        cell: ({ row }) =>
-            h("div", { class: "lowercase" }, row.getValue("kode_unit")),
     },
     {
-        header: "Unit Kerja",
         accessorKey: "unit_kerja",
+        header: ({ column }) =>
+            h(
+                Button,
+                {
+                    variant: "ghost",
+                    onClick: () =>
+                        column.toggleSorting(column.getIsSorted() === "asc"),
+                },
+                () => [
+                    "Unit Kerja",
+                    h(ArrowsUpDownIcon, { class: "ml-2 h-4 w-4" }),
+                ]
+            ),
     },
     {
         header: "List Kerusakan",
@@ -165,48 +184,34 @@ export const columns: ColumnDef<LaporanP2H>[] = [
         enableHiding: false,
         cell: ({ row }) => {
             const data = row.original;
-            return h(
-                "div",
-                { class: "flex items-center space-x-2 cursor-pointer" },
-                [
-                    h(TooltipProvider, null, () =>
-                        h(Tooltip, null, () => [
-                            h(
-                                TooltipTrigger,
-                                {
-                                    onClick: () =>
-                                        handleActionClick("detail", data),
-                                },
-                                () =>
-                                    h(EyeIcon, {
-                                        class: "w-5 h-5 hover:text-yellow-700 text-yellow-500",
-                                    })
-                            ),
-                            h(TooltipContent, null, () =>
-                                h("p", null, "Detail Laporan")
-                            ),
-                        ])
-                    ),
-                    // h(TooltipProvider, null, () =>
-                    //     h(Tooltip, null, () => [
-                    //         h(
-                    //             TooltipTrigger,
-                    //             {
-                    //                 onClick: () =>
-                    //                     handleActionClick("edit", data),
-                    //             },
-                    //             () =>
-                    //                 h(PencilIcon, {
-                    //                     class: "w-5 h-5 hover:text-gray-800",
-                    //                 })
-                    //         ),
-                    //         h(TooltipContent, null, () =>
-                    //             h("p", null, "Edit Menu")
-                    //         ),
-                    //     ])
-                    // ),
-                ]
-            );
+            const kerusakanUnitPart = row.getValue("kerusakan_unit_part");
+
+            return kerusakanUnitPart
+                ? h(
+                      "div",
+                      { class: "flex items-center space-x-2 cursor-pointer" },
+                      [
+                          h(TooltipProvider, null, () =>
+                              h(Tooltip, null, () => [
+                                  h(
+                                      TooltipTrigger,
+                                      {
+                                          onClick: () =>
+                                              handleActionClick("detail", data),
+                                      },
+                                      () =>
+                                          h(EyeIcon, {
+                                              class: "w-5 h-5 hover:text-yellow-700 text-yellow-500",
+                                          })
+                                  ),
+                                  h(TooltipContent, null, () =>
+                                      h("p", null, "Detail Laporan Kerusakan")
+                                  ),
+                              ])
+                          ),
+                      ]
+                  )
+                : null;
         },
     },
 ];

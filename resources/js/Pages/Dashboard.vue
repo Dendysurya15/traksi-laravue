@@ -13,7 +13,11 @@ import { LaporanP2H } from "@/types/laporanP2h";
 import DetailLaporanP2H from "@/Pages/HistoryLaporanP2H/detail-laporan.vue";
 import { useDateFormat, useNow } from "@vueuse/core";
 import { Badge } from "@/Components/ui/badge";
-import { ArrowPathIcon, WifiIcon } from "@heroicons/vue/24/solid";
+import {
+    ArrowPathIcon,
+    SignalSlashIcon,
+    WifiIcon,
+} from "@heroicons/vue/24/solid";
 
 const props = defineProps<{ data: LaporanP2H[] }>();
 const data = ref<LaporanP2H[]>(props.data);
@@ -127,7 +131,7 @@ function refreshData() {
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div>
                         <div
-                            class="px-5 pt-3 font-semibold justify-start items-center flex"
+                            class="px-5 pt-3 font-semibold text-xl justify-start items-center flex"
                         >
                             History Laporan P2H - {{ live_tanggal }}
                             <div class="cursor-pointer ml-3 text-sm">
@@ -169,7 +173,7 @@ function refreshData() {
                             v-else-if="errorFetching"
                             class="flex justify-center gap-3 h-96 items-center font-bold text-xl"
                         >
-                            <WifiIcon class="w-5 h-5 text-green-600" />
+                            <SignalSlashIcon class="w-5 h-5 text-green-600" />
                             <p>{{ errorFetching }}</p>
                         </div>
                         <div v-else>

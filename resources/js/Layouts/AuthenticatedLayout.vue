@@ -287,7 +287,7 @@ export default {
                 <div v-if="isSidebarOpen && isSmallScreen">
                     <div
                         class="fixed inset-0 z-50 md:w-2/5 sm:w-2/5 xs:w-2/5 rs:w-3/5 h-full"
-                        :style="{ backgroundColor: '#fefefe' }"
+                        :style="{ backgroundColor: '#003151' }"
                     >
                         <!-- Sidebar content -->
                         <SidebarComponent

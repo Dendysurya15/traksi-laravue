@@ -43,6 +43,10 @@ export default defineComponent({
 .active-link {
     background-color: #325266; /* Example background color for active link */
 }
+.active-link:hover {
+    background-color: #3e647c; /* Slightly lighter shade for hover */
+    transition: background-color 0.3s ease; /* Smooth transition effect */
+}
 </style>
 
 <template>
@@ -77,13 +81,14 @@ export default defineComponent({
                 :key="index"
                 @click="navigateTo(link.name)"
                 :class="[
-                    'bg-[#002741] text-white rounded-xl p-3 m-1',
+                    'bg-[#002741] text-white rounded-xl p-3 m-1 ',
+                    'hover:bg-[#3e647c] transition-colors duration-300 ease-in-out', // Add this line for hover effect
                     {
                         'active-link':
                             currentUrl === '/' + link.name.toLowerCase(),
                     },
                 ]"
-                class="bg-[#002741] text-white rounded-xl p-3 m-1 flex items-center pl-5 gap-3"
+                class="bg-[#002741] text-white rounded-xl p-3 m-1 flex items-center pl-5 gap-3 cursor-pointer"
             >
                 <component :is="getIconComponent(link.icon)" class="size-5" />
                 {{ link.name }}

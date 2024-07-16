@@ -57,6 +57,7 @@ import { Skeleton } from "@/Components/ui/skeleton";
 const props = defineProps<{ data: LaporanP2H[] }>();
 
 const data = ref<LaporanP2H[]>(props.data);
+
 const formattedDate = useDateFormat(
     data.value.tanggal_upload,
     "dddd, D MMMM YYYY hh:mm",
@@ -67,9 +68,11 @@ const kerusakan_unit = ref<LaporanP2H[]>(null);
 const emblaMainApi = ref<CarouselApi>();
 const emblaThumbnailApi = ref<CarouselApi>();
 const selectedIndex = ref(0);
+const selectedCardIndex = ref(0);
 const selectedImage = ref<string | null>(null);
+const selectedImageFotoUnit = `/img/documents/LaporP2H/${data.value.foto_unit}`;
 const selectedNameImage = ref<string | null>(null);
-const selectedNameImageFotoUnit = ref<string | null>(null);
+const selectedNameImageFotoUnit = data.value.foto_unit;
 const imageExists = ref<boolean[]>([]);
 const {
     data: fetchedData,
@@ -98,21 +101,24 @@ function onSelect() {
 function onThumbClick(index: number) {
     if (!emblaMainApi.value || !emblaThumbnailApi.value) return;
     emblaMainApi.value.scrollTo(index);
+    selectedCardIndex.value = index;
+}
+
+function handleCardClick(index: number) {
+    selectedCardIndex.value = index;
+    if (emblaMainApi.value) {
+        emblaMainApi.value.scrollTo(index);
+    }
 }
 
 function handleIconClickImagePreview() {
     if (kerusakan_unit.value) {
         selectedImage.value = `/img/documents/LaporP2H/${
-            kerusakan_unit.value[selectedIndex.value].foto
+            kerusakan_unit.value[selectedCardIndex.value].foto
         }`;
         selectedNameImage.value =
-            kerusakan_unit.value[selectedIndex.value].foto;
+            kerusakan_unit.value[selectedCardIndex.value].foto;
     }
-}
-
-function handleIconClickImageFotoUnitPreview(foto_unit) {
-    selectedImage.value = `/img/documents/LaporP2H/${foto_unit}`;
-    selectedNameImageFotoUnit.value = foto_unit;
 }
 
 watchOnce(emblaMainApi, (emblaMainApi) => {
@@ -142,13 +148,7 @@ function checkImages() {
 </script>
 
 <template>
-    <Head title="History" />
-    <!-- 
-    <template #header>
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            History
-        </h2>
-    </template> -->
+    <Head title="Detail Laporan P2H" />
 
     <div>
         <div class="flex items-center justify-between px-2">
@@ -168,14 +168,23 @@ function checkImages() {
                     </Badge>
                 </template>
                 <template v-else>
-                    <Badge variant="destructive" class="text-sm cursor-pointer">
+                    <Badge
+                        variant="destructive"
+                        class="text-sm xs:text-xs sm:text-base rs:text-sm cursor-pointer"
+                    >
                         <ExclamationTriangleIcon class="w-5 h-5 mr-2" />
                         Unit Terdapat Kerusakan
                     </Badge>
                 </template>
 
-                Detail Laporan Pemeriksaan P2H pada<span
-                    class="font-extrabold"
+                <span
+                    class="text-lg xs:text-base sm:text-base rs:text-sm font-semibold"
+                >
+                    Detail Laporan Pemeriksaan P2H
+                </span>
+
+                <span
+                    class="text-lg xs:text-base sm:text-base rs:text-sm font-extrabold"
                     >{{ formattedDate }}</span
                 >
             </div>
@@ -199,13 +208,10 @@ function checkImages() {
                             <Badge
                                 class="bg-gray-200 gap-2 rounded-sm text-black hover:bg-gray-300 cursor-pointer"
                             >
-                                Foto Unit
+                                <span class="rs:hidden xs:hidden sm:hidden"
+                                    >Foto Unit</span
+                                >
                                 <PhotoIcon
-                                    @click="
-                                        handleIconClickImageFotoUnitPreview(
-                                            data.foto_unit
-                                        )
-                                    "
                                     class="w-7 h-7 text-blue-950 cursor-pointer"
                                 />
                             </Badge>
@@ -231,8 +237,8 @@ function checkImages() {
                             class="flex items-center justify-center object-cover"
                         >
                             <img
-                                v-if="selectedImage"
-                                :src="selectedImage"
+                                v-if="selectedImageFotoUnit"
+                                :src="selectedImageFotoUnit"
                                 alt="Terjadi kesalahan silahkan hubungi Tim Pengembang!"
                                 class="object-contain max-h-full"
                             />
@@ -252,7 +258,9 @@ function checkImages() {
                 <div class="ml-3 italic">Driver : {{ data.user }}</div>
 
                 <div class="grid grid-cols-2 mt-4">
-                    <div class="col-span-1 flex justify-center">
+                    <div
+                        class="col-span-1 hidden xl:flex lg:flex justify-center"
+                    >
                         <div class="w-10/12">
                             <div v-if="fetchingData" class="loading-indicator">
                                 <Skeleton
@@ -363,17 +371,6 @@ function checkImages() {
                                                         <DialogTitle>{{
                                                             selectedNameImage
                                                         }}</DialogTitle>
-                                                        <div
-                                                            class="flex items-center space-x-2"
-                                                        >
-                                                            <!-- Additional Icon -->
-                                                            <InformationCircleIcon
-                                                                @click="
-                                                                    handleIconClickImagePreview
-                                                                "
-                                                                class="w-6 h-6 text-gray-500 hover:text-gray-700 cursor-pointer"
-                                                            />
-                                                        </div>
                                                     </div>
                                                 </DialogHeader>
                                                 <div
@@ -453,7 +450,7 @@ function checkImages() {
                             </div>
                         </div>
                     </div>
-                    <div class="col-span-1">
+                    <div class="col-span-full xl:col-span-1 lg:col-span-1">
                         <p class="font-bold text-lg text-gray-800 mb-3">
                             List Part/Bagian Terindikasi Kerusakan di Unit
                         </p>
@@ -462,16 +459,98 @@ function checkImages() {
                             <Card
                                 v-for="(item, index) in fetchedData"
                                 :key="index"
-                                class="mb-2 p-1"
+                                class="mb-2 p-1 cursor-pointer flex items-center"
+                                :class="{
+                                    'bg-[#003151]': index === selectedCardIndex,
+                                }"
+                                @click="handleCardClick(index)"
                             >
-                                <CardHeader>
-                                    <CardTitle class="text-lg">{{
-                                        item.title_kerusakan
-                                    }}</CardTitle>
-                                    <CardDescription class="text-md">
-                                        {{ item.komentar }}
-                                    </CardDescription>
-                                </CardHeader>
+                                <div
+                                    class="w-10/12 rs:w-10/12 xs:w-10/12 sm:w-10/12 md:w-10/12"
+                                >
+                                    <CardHeader>
+                                        <CardTitle
+                                            class="text-lg"
+                                            :class="{
+                                                'text-white':
+                                                    index === selectedCardIndex,
+                                            }"
+                                        >
+                                            {{ item.title_kerusakan }}
+                                        </CardTitle>
+                                        <CardDescription
+                                            class="text-md"
+                                            :class="{
+                                                'text-white':
+                                                    index === selectedCardIndex,
+                                            }"
+                                        >
+                                            {{ item.komentar }}
+                                        </CardDescription>
+                                    </CardHeader>
+                                </div>
+
+                                <div
+                                    class="hidden xs:block rs:block sm:block md:block p-1 w-2/12 rs:w-2/12 xs:w-2/12 sm:w-2/12 md:w-2/12 flex justify-center"
+                                >
+                                    <Dialog>
+                                        <template
+                                            v-if="index === selectedCardIndex"
+                                        >
+                                            <DialogTrigger as-child>
+                                                <img
+                                                    v-if="imageExists[index]"
+                                                    :src="`/img/documents/LaporP2H/${item.foto}`"
+                                                    @click.stop="
+                                                        index ===
+                                                            selectedCardIndex &&
+                                                            handleIconClickImagePreview()
+                                                    "
+                                                    :class="{
+                                                        'cursor-pointer':
+                                                            index ===
+                                                            selectedCardIndex,
+                                                        'cursor-not-allowed opacity-50':
+                                                            index !==
+                                                            selectedCardIndex,
+                                                    }"
+                                                    alt="Kerusakan Image"
+                                                    class="object-cover w-full h-full"
+                                                />
+                                            </DialogTrigger>
+                                        </template>
+                                        <img
+                                            v-else
+                                            :src="`/img/documents/LaporP2H/${item.foto}`"
+                                            alt="Kerusakan Image"
+                                            class="object-cover w-full h-full cursor-not-allowed opacity-50"
+                                        />
+
+                                        <DialogContent
+                                            class="max-w-7xl rounded"
+                                        >
+                                            <DialogHeader>
+                                                <div
+                                                    class="flex justify-center items-center"
+                                                >
+                                                    <DialogTitle>{{
+                                                        selectedNameImage
+                                                    }}</DialogTitle>
+                                                </div>
+                                            </DialogHeader>
+                                            <div
+                                                class="flex items-center justify-center object-cover"
+                                            >
+                                                <img
+                                                    v-if="selectedImage"
+                                                    :src="selectedImage"
+                                                    alt="Image Preview"
+                                                    class="object-contain max-h-full"
+                                                />
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
                             </Card>
                         </div>
                     </div>

@@ -38,7 +38,7 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Login - Monitoring Traksi" />
+        <Head title="Sign In" />
 
         <div v-if="status" class="mb-4 font-medium text-sm text-green-600">
             {{ status }}

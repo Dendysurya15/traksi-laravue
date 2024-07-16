@@ -95,7 +95,7 @@ export const columns: ColumnDef<LaporanP2H>[] = [
                         column.toggleSorting(column.getIsSorted() === "asc"),
                 },
                 () => [
-                    "Tanggal Upload",
+                    "TANGGAL UPLOAD",
                     h(ArrowsUpDownIcon, { class: "ml-2 h-4 w-4" }),
                 ]
             ),
@@ -129,7 +129,7 @@ export const columns: ColumnDef<LaporanP2H>[] = [
                         column.toggleSorting(column.getIsSorted() === "asc"),
                 },
                 () => [
-                    "Jenis Unit",
+                    "JENIS UNIT",
                     h(ArrowsUpDownIcon, { class: "ml-2 h-4 w-4" }),
                 ]
             ),
@@ -147,7 +147,7 @@ export const columns: ColumnDef<LaporanP2H>[] = [
                         column.toggleSorting(column.getIsSorted() === "asc"),
                 },
                 () => [
-                    "Kode Unit",
+                    "KODE UNIT",
                     h(ArrowsUpDownIcon, { class: "ml-2 h-4 w-4" }),
                 ]
             ),
@@ -163,24 +163,24 @@ export const columns: ColumnDef<LaporanP2H>[] = [
                         column.toggleSorting(column.getIsSorted() === "asc"),
                 },
                 () => [
-                    "Unit Kerja",
+                    "UNIT KERJA",
                     h(ArrowsUpDownIcon, { class: "ml-2 h-4 w-4" }),
                 ]
             ),
     },
     {
-        header: "List Kerusakan",
+        header: "LIST KERUSAKAN",
         accessorKey: "kerusakan_unit_part",
         cell: ({ row }) =>
             renderKerusakanBadge(row.getValue("kerusakan_unit_part")),
     },
     {
-        header: "Driver / User",
+        header: "DRIVER / USER",
         accessorKey: "user",
     },
     {
         id: "actions",
-        header: "Action",
+        header: "AKSI",
         enableHiding: false,
         cell: ({ row }) => {
             const data = row.original;

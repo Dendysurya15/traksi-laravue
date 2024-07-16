@@ -23,7 +23,9 @@ import { Link } from "@inertiajs/vue3";
     <div class="grid grid-cols-3 h-screen">
         <div
             class="relative col-span-2 bg-cover bg-center hidden md:block lg:block xl:block"
-            :style="{ backgroundImage: `url('/loginImage/car_bg.jpg')` }"
+            :style="{
+                backgroundImage: `url('/loginImage/homepage_container.jpg')`,
+            }"
         >
             <div
                 class="absolute inset-0 bg-sky-950 bg-opacity-90 grid content-center pl-20"
@@ -145,7 +147,7 @@ import { Link } from "@inertiajs/vue3";
                 <small
                     class="flex justify-center mb-7 text-sm font-medium leading-none"
                 >
-                    @2024. Digital Architect SRS
+                    @2024. Digital Architect SRS | Monitoring Traksi
                 </small>
             </div>
         </div>

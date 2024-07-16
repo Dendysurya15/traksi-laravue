@@ -62,7 +62,7 @@ async function getData(page = 1, paginate = 10): Promise<void> {
                 pagination.value = {
                     current_page: newData.current_page,
                     last_page: newData.last_page,
-                    per_page: newData.per_page,
+                    per_page: paginate,
                     total: newData.total,
                 };
                 isFetchingData.value = false;
@@ -97,7 +97,6 @@ function handleSharedActionTypeChanged(newType) {
 }
 
 function handleSharedActionDataChanged(newData) {
-    console.log(newData);
     detailContentData.value = newData;
 }
 
@@ -109,13 +108,6 @@ function refreshData() {
     getData(pagination.value.current_page, pagination.value.per_page);
 }
 </script>
-
-<style>
-.fixed-width-date {
-    display: inline-block;
-    width: 400px;
-}
-</style>
 
 <template>
     <Head title="Dashboard" />
@@ -182,6 +174,7 @@ function refreshData() {
                                 :columns="columns"
                                 :data="data"
                                 :pagination="pagination"
+                                :per-page="pagination.per_page"
                                 @fetch-data="getData"
                                 @action-clicked="actionStateTableTrigger"
                                 @shared-action-type-changed="

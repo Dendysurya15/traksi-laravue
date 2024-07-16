@@ -23,7 +23,7 @@ class HistoryPelaporanP2HController extends Controller
 
     public function fetchDataTableP2H(Request $request)
     {
-        $perPage = $request->input('paginate', 5);
+        $perPage = $request->input('paginate', 10);
         $query = LaporanP2H::paginate($perPage);
 
         // Decode kerusakan_unit and get listPertanyaan

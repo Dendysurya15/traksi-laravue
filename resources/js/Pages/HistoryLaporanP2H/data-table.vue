@@ -11,7 +11,7 @@ import {
     getFilteredRowModel,
     getPaginationRowModel,
 } from "@tanstack/vue-table";
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted } from "vue";
 import { valueUpdater } from "@/lib/utils";
 import { Button } from "@/Components/ui/button";
 import {
@@ -48,10 +48,12 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from "@/Components/ui/dropdown-menu";
+
 const sorting = ref<SortingState>([]);
 const columnFilters = ref<ColumnFiltersState>([]);
 const columnVisibility = ref<VisibilityState>({});
 const rowSelection = ref({});
+
 const props = defineProps<{
     columns: ColumnDef<TData, TValue>[];
     data: TData[];
@@ -61,6 +63,7 @@ const props = defineProps<{
         per_page: number;
         total: number;
     };
+    perPage: number;
 }>();
 
 const emit = defineEmits([
@@ -104,7 +107,7 @@ const table = useVueTable({
     getPaginationRowModel: getPaginationRowModel(),
 });
 
-const pageSize = ref(`${props.pagination.per_page}`);
+const pageSize = ref(`${props.perPage}`);
 
 const availablePageSizes = [5, 10, 20, 30, 50];
 
@@ -116,11 +119,24 @@ const filteredPageSizes = computed(() => {
             size === Math.min(...availablePageSizes.filter((s) => s > total))
     );
 });
+
 watch(pageSize, (newPageSize) => {
     table.setPageSize(parseInt(newPageSize));
-
     emit("fetch-data", 1, newPageSize);
 });
+
+onMounted(() => {
+    table.setPageSize(parseInt(pageSize.value));
+});
+
+watch(
+    () => props.data,
+    () => {
+        table.setPageSize(parseInt(pageSize.value));
+        table.reset();
+    },
+    { deep: true }
+);
 
 const nextPage = () => {
     if (props.pagination.current_page < props.pagination.last_page) {
@@ -141,12 +157,15 @@ const firstPage = () => {
 const lastPage = () => {
     emit("fetch-data", props.pagination.last_page);
 };
+
 const globalFilter = ref("");
+
 watch(isActionTriggered, (newValue) => {
     emit("action-clicked");
     emit("shared-action-data-changed", sharedActionData);
     emit("shared-action-type-changed", sharedActionType);
 });
+
 const visibleColumnsCount = computed(() => {
     return table
         .getAllColumns()

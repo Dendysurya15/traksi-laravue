@@ -24,10 +24,11 @@ class HistoryPelaporanP2HController extends Controller
     public function fetchDataTableP2H(Request $request)
     {
         $perPage = $request->input('paginate', 10);
-        $query = LaporanP2H::paginate($perPage);
+        $query = LaporanP2H::orderBy('tanggal_upload', 'desc')->paginate($perPage);
 
         // Decode kerusakan_unit and get listPertanyaan
         $listPertanyaan = ListPertanyaan::get()->keyBy('id')->toArray();
+
 
         foreach ($query as $laporan) {
             if (!empty($laporan->kerusakan_unit)) {
@@ -61,14 +62,13 @@ class HistoryPelaporanP2HController extends Controller
 
         $kerusakanUnit = LaporanP2H::find($id)->kerusakan_unit;
 
-        $listPertanyaan = ListPertanyaan::get()->toArray();
+        $listPertanyaan = ListPertanyaan::get()->keyBy('id')->toArray();
 
         $jsonKerusakanUnit = json_decode($kerusakanUnit, true);
 
 
         $newResponse = [];
 
-        // dd($jsonKerusakanUnit);
         $inc = 0;
         foreach ($jsonKerusakanUnit as $key => $value) {
             if (array_key_exists($key, $listPertanyaan)) {

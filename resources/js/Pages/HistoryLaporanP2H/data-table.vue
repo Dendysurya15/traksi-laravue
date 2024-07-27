@@ -80,6 +80,7 @@ const table = useVueTable({
     get columns() {
         return props.columns;
     },
+
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: (updaterOrValue) =>

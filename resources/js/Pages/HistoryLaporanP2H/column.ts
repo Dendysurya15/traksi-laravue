@@ -1,10 +1,15 @@
 import { h } from "vue";
-import { EyeIcon, PencilIcon } from "@heroicons/vue/24/solid";
+import {
+    ExclamationTriangleIcon,
+    EyeIcon,
+    PencilIcon,
+} from "@heroicons/vue/24/solid";
 import { setActionTriggered } from "@/lib/actionStateTable";
 import { updateSharedState } from "@/lib/sharedDataState";
 import { LaporanP2H } from "@/types/laporanP2h";
 import { Checkbox } from "@/Components/ui/checkbox";
 import { ArrowsUpDownIcon } from "@heroicons/vue/24/solid";
+
 import { useDateFormat } from "@vueuse/core";
 import {
     Tooltip,
@@ -82,6 +87,25 @@ export const columns: ColumnDef<LaporanP2H>[] = [
             }),
         enableSorting: false,
         enableHiding: false,
+    },
+    {
+        id: "customColumn",
+        header: () =>
+            h("div", { class: "flex items-center" }, [
+                h("span", { class: "mr-2" }, "Status FU Kerusakan"),
+            ]),
+        cell: ({ row }) =>
+            h("div", { class: "flex items-center w-36" }, [
+                h(ExclamationTriangleIcon, {
+                    class: "h-5 w-5 text-yellow-500 animate-pulse   ",
+                }),
+                h(
+                    "span",
+                    { class: "ml-2 text-yellow-500" },
+                    "Butuh Follow Up!"
+                ),
+            ]),
+        enableSorting: true,
     },
     {
         id: "tanggal_upload",

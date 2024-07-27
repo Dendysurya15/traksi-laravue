@@ -9,6 +9,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/Components/ui/tooltip";
+import { Button } from "@/Components/ui/button";
 import {
     Carousel,
     type CarouselApi,
@@ -44,13 +45,17 @@ const emit = defineEmits(["is-back-to-table"]);
 import {
     ArrowsPointingOutIcon,
     MagnifyingGlassCircleIcon,
+    NoSymbolIcon,
+    UserCircleIcon,
 } from "@heroicons/vue/24/solid";
 import {
     ArrowLeftCircleIcon,
+    CheckCircleIcon,
     ExclamationTriangleIcon,
     MapIcon,
     PhotoIcon,
 } from "@heroicons/vue/24/solid";
+
 import { Separator } from "@/Components/ui/separator";
 import { Badge } from "@/Components/ui/badge";
 import { Skeleton } from "@/Components/ui/skeleton";
@@ -158,7 +163,7 @@ function checkImages() {
                     class="w-8 h-8 text-gray-400 cursor-pointer"
                 />
 
-                <template v-if="fetchingData">
+                <!-- <template v-if="fetchingData">
                     <Skeleton class="w-[200px] h-7 bg-gray-200" />
                 </template>
                 <template v-else-if="fetchError">
@@ -175,16 +180,16 @@ function checkImages() {
                         <ExclamationTriangleIcon class="w-5 h-5 mr-2" />
                         Unit Terdapat Kerusakan
                     </Badge>
-                </template>
+                </template> -->
 
                 <span
-                    class="text-lg xs:text-base sm:text-base rs:text-sm font-semibold"
+                    class="text-lg xs:text-base sm:text-base rs:text-sm font-semibold text-gray-500"
                 >
                     Detail Laporan Pemeriksaan P2H
                 </span>
 
                 <span
-                    class="text-lg xs:text-base sm:text-base rs:text-sm font-extrabold"
+                    class="text-lg xs:text-base sm:text-base rs:text-sm font-extrabold text-gray-500"
                     >{{ formattedDate }}</span
                 >
             </div>
@@ -248,15 +253,35 @@ function checkImages() {
                 </Dialog>
             </div>
         </div>
-        <Separator class="mt-2" />
+        <!-- <Separator class="mt-2" /> -->
         <div class="mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="text-2xl mt-5 ml-3 font-semibold text-gray-800">
+            <div class="bg-white overflow-hidden sm:rounded-lg">
+                <div class="text-2xl mt-2 ml-3 font-semibold text-gray-800">
                     {{ data.jenis_unit }} {{ data.unit_kerja }}
                     {{ data.kode_unit }}
                 </div>
-                <div class="ml-3 italic">Driver : {{ data.user }}</div>
-
+                <!-- header -->
+                <div class="ml-3 mt-2 inline-flex gap-3">
+                    <div class="flex items-center text-gray-600">
+                        <ExclamationTriangleIcon
+                            class="w-5 h-5 mr-2 text-yellow-500"
+                        />
+                        Belum Follow Up!
+                    </div>
+                    <div class="flex items-center text-gray-600">
+                        <span
+                            class="inline-flex mr-2 items-center justify-center w-5 h-5 ms-2 text-xs font-semibold text-white bg-red-500 rounded-full"
+                        >
+                            3
+                        </span>
+                        Total Laporan Kerusakan
+                    </div>
+                    <div class="flex items-center text-gray-600">
+                        <UserCircleIcon class="w-6 h-6 mr-2 text-gray-600" />
+                        {{ data.user }}
+                    </div>
+                </div>
+                <!-- content -->
                 <div class="grid grid-cols-2 mt-4">
                     <div
                         class="col-span-1 hidden xl:flex lg:flex justify-center"
@@ -461,7 +486,7 @@ function checkImages() {
                                 :key="index"
                                 class="mb-2 p-1 cursor-pointer flex items-center"
                                 :class="{
-                                    'bg-[#003151]': index === selectedCardIndex,
+                                    'bg-gray-700': index === selectedCardIndex,
                                 }"
                                 @click="handleCardClick(index)"
                             >
@@ -553,6 +578,19 @@ function checkImages() {
                                 </div>
                             </Card>
                         </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <div class="flex gap-2">
+                        <Button class="bg-red-500">
+                            <NoSymbolIcon class="w-5 h-5 mr-2" />Unit Tidak
+                            Dapat Digunakan !!</Button
+                        >
+                        <Button class="bg-green-500">
+                            <CheckCircleIcon class="w-5 h-5 mr-2" />
+                            Unit Dapat Beroperasi</Button
+                        >
                     </div>
                 </div>
             </div>

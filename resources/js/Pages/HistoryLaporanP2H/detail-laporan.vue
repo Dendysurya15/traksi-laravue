@@ -3,12 +3,6 @@ import { watchOnce, useDateFormat } from "@vueuse/core";
 import axios from "axios";
 import { watch } from "vue";
 import { useAxios } from "@vueuse/integrations/useAxios";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/Components/ui/tooltip";
 import { Button } from "@/Components/ui/button";
 import {
     Carousel,
@@ -20,7 +14,7 @@ import {
 } from "@/Components/ui/carousel";
 import { Head } from "@inertiajs/vue3";
 import { LaporanP2H } from "@/types/laporanP2h";
-
+import DialogFuKerusakan from "@/Components/DialogFuKerusakan.vue";
 import { ref, computed } from "vue";
 
 import {
@@ -31,6 +25,14 @@ import {
     CardHeader,
     CardTitle,
 } from "@/Components/ui/card";
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger,
+} from "@/Components/ui/hover-card";
+
+import { Input } from "@/Components/ui/input";
+import { Label } from "@/Components/ui/label";
 import {
     Dialog,
     DialogClose,
@@ -44,6 +46,7 @@ import {
 const emit = defineEmits(["is-back-to-table"]);
 import {
     ArrowsPointingOutIcon,
+    CalendarIcon,
     MagnifyingGlassCircleIcon,
     NoSymbolIcon,
     UserCircleIcon,
@@ -266,7 +269,33 @@ function checkImages() {
                         <ExclamationTriangleIcon
                             class="w-5 h-5 mr-2 text-yellow-500"
                         />
-                        Belum Follow Up!
+                        <HoverCard>
+                            <HoverCardTrigger as-child>
+                                <a href="" class="underline"
+                                    >Belum Follow Up!</a
+                                >
+                            </HoverCardTrigger>
+                            <HoverCardContent class="w-80">
+                                <div class="flex justify-between space-x-4">
+                                    <div class="space-y-1">
+                                        <h4 class="text-sm font-semibold">
+                                            Ahmad Subagio (Askep RDE)
+                                        </h4>
+                                        <p class="text-sm">{kata kata}</p>
+                                        <div class="flex items-center pt-2">
+                                            <CalendarIcon
+                                                class="mr-2 h-4 w-4 opacity-70"
+                                            />
+                                            <span
+                                                class="text-xs text-muted-foreground"
+                                            >
+                                                Updated
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </HoverCardContent>
+                        </HoverCard>
                     </div>
                     <div class="flex items-center text-gray-600">
                         <span
@@ -583,14 +612,21 @@ function checkImages() {
 
                 <div class="flex justify-end">
                     <div class="flex gap-2">
-                        <Button class="bg-red-500">
+                        <!-- <Button class="bg-red-500">
                             <NoSymbolIcon class="w-5 h-5 mr-2" />Unit Tidak
                             Dapat Digunakan !!</Button
                         >
                         <Button class="bg-green-500">
                             <CheckCircleIcon class="w-5 h-5 mr-2" />
                             Unit Dapat Beroperasi</Button
-                        >
+                        > -->
+                        <DialogFuKerusakan
+                            :textButton="Unit Tidak
+                            Dapat Digunakan"
+                        />
+                        <DialogFuKerusakan
+                            :textButton="Unit Dapat Beroperasi"
+                        />
                     </div>
                 </div>
             </div>

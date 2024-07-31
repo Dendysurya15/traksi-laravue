@@ -1,43 +1,154 @@
 <script setup lang="ts">
+import { ref, watch } from "vue";
 import { Button } from "@/Components/ui/button";
+import { usePage } from "@inertiajs/vue3";
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from "@/Components/ui/dialog";
-import { Input } from "@/Components/ui/input";
-import { Label } from "@/Components/ui/label";
+import {
+    CheckCircleIcon,
+    ExclamationTriangleIcon,
+    WrenchScrewdriverIcon,
+} from "@heroicons/vue/24/solid";
+import { useDateFormat, useNow } from "@vueuse/core";
+import axios from "axios";
+const live_tanggal = useDateFormat(useNow(), "dddd, D MMM YYYY  HH:mm:ss", {
+    locales: "id-ID",
+});
+const props = defineProps<{
+    textButton: string;
+    buttonClass: string;
+    confirmFu: boolean;
+    idLaporan: string;
+    userFollowUp: string;
+    tanggal_submit: string;
+}>();
+const page = usePage();
+const user = page.props.auth.user;
+const isSubmitting = ref(false);
+const formData = ref({
+    status: props.confirmFu,
+    komentar: "",
+    idLaporan: props.idLaporan,
+    userFollowUp: user.nama_lengkap,
+    tanggal_submit: "",
+});
+const open = ref(false);
+
+const emits = defineEmits(["sendToast"]);
+
+const submitForm = async () => {
+    isSubmitting.value = true;
+
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+
+    try {
+        // Submit form data to Laravel backend
+        const response = await axios.post(
+            "/change-status-fu-kerusakan",
+            formData.value
+        );
+        emits("sendToast", {
+            title: "Sukses",
+            color: "green",
+            description: "Berhasil submit follow up!",
+        });
+        open.value = false; // Close the dialog after successful submission
+    } catch (error) {
+        emits("sendToast", {
+            title: "Error",
+            color: "red",
+            description: error,
+        });
+    } finally {
+        isSubmitting.value = false;
+    }
+};
+
+watch(isSubmitting, (newValue) => {
+    if (newValue) {
+        // Store the current date and time when the submit button is clicked
+        formData.value.tanggal_submit = live_tanggal.value;
+    }
+});
 </script>
 
 <template>
-    <Dialog>
+    <Dialog v-model:open="open">
         <DialogTrigger as-child>
-            <Button variant="outline"> Edit Profile </Button>
+            <Button :class="buttonClass" class="gap-1">
+                <template v-if="confirmFu">
+                    <CheckCircleIcon
+                        class="w-5 h-5 text-white cursor-pointer"
+                    />
+                </template>
+                <template v-else>
+                    <WrenchScrewdriverIcon
+                        class="w-5 h-5 text-white cursor-pointer"
+                    />
+                </template>
+                {{ textButton }}
+            </Button>
         </DialogTrigger>
-        <DialogContent class="sm:max-w-[425px]">
+        <DialogContent class="w-[400px] rounded-md">
             <DialogHeader>
-                <DialogTitle>Edit profile</DialogTitle>
-                <DialogDescription>
-                    Make changes to your profile here. Click save when you're
-                    done.
-                </DialogDescription>
+                <DialogTitle
+                    class="flex justify-start content-center items-center text-2xl gap-2"
+                >
+                    <ExclamationTriangleIcon
+                        class="w-7 h-7 text-yellow-500 cursor-pointer"
+                    />
+
+                    Konfirmasi Follow Up
+                </DialogTitle>
             </DialogHeader>
-            <div class="grid gap-4 py-4">
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="name" class="text-right"> Name </Label>
-                    <Input id="name" value="Pedro Duarte" class="col-span-3" />
-                </div>
-                <div class="grid grid-cols-4 items-center gap-4">
-                    <Label for="username" class="text-right"> Username </Label>
-                    <Input id="username" value="@peduarte" class="col-span-3" />
+            <div class="grid gap-4">
+                <p
+                    class="text-sm leading-6 italic -mb-2"
+                    :class="confirmFu ? 'text-green-600' : 'text-red-600'"
+                >
+                    {{
+                        confirmFu
+                            ? "Boleh dikosongkan jika tidak perlu!"
+                            : "*Wajib melakukan pengisian komentar!"
+                    }}
+                </p>
+                <div>
+                    <textarea
+                        rows="4"
+                        class="block p-2.5 h-[200px] w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                        placeholder="Tulis informasi terkait konfirmasi Follow Up!"
+                        v-model="formData.komentar"
+                    ></textarea>
                 </div>
             </div>
-            <DialogFooter>
-                <Button type="submit"> Save changes </Button>
+
+            <DialogFooter class="flex justify-end items-end">
+                <button
+                    type="button"
+                    class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-4/12 flex items-center justify-center"
+                    :disabled="isSubmitting"
+                    @click="submitForm"
+                >
+                    <span v-if="isSubmitting" class="flex">
+                        <span class="mr-1">Submit</span>
+                        <span
+                            v-for="dot in [0, 1, 2]"
+                            :key="dot"
+                            class="animate-pulse duration-1000"
+                            :style="{
+                                animationDelay: `${dot * 333}ms`,
+                            }"
+                            >.</span
+                        >
+                    </span>
+                    <span v-else>Submit</span>
+                </button>
             </DialogFooter>
         </DialogContent>
     </Dialog>

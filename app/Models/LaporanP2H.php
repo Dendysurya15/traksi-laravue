@@ -11,4 +11,5 @@ class LaporanP2H extends Model
 
     protected $connection = 'mysql2';
     protected $table = "laporan_p2h";
+    public $timestamps = false; // Disable timestamps
 }

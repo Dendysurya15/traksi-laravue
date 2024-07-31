@@ -56,6 +56,39 @@ class HistoryPelaporanP2HController extends Controller
         return response()->json($query);
     }
 
+    public function changeStatusFuKerusakan(Request $request)
+    {
+        $requestData = $request->all();
+
+
+        // Find the LaporanP2H record by the idLaporan
+        $laporan = LaporanP2H::find($requestData['idLaporan']);
+
+        if ($laporan) {
+            // Update the komentar field with the provided value
+
+            $statusFollowUp = json_encode([
+                'status' => $requestData['status'],
+                'komentar' => $requestData['komentar'],
+                'userFollowUp' => $requestData['userFollowUp'],
+                'tanggal_submit' => $requestData['tanggal_submit'],
+            ]);
+            $laporan->status_follow_up = $statusFollowUp;
+            $laporan->save();
+
+            // Return a success response
+            return response()->json([
+                'message' => 'Laporan updated successfully',
+                'data' => $laporan
+            ], 200);
+        } else {
+            // Return an error response if the LaporanP2H record is not found
+            return response()->json([
+                'message' => 'Laporan not found'
+            ], 404);
+        }
+    }
+
 
     public function getListKerusakan($id)
     {

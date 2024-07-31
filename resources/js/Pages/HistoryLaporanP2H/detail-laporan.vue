@@ -3,7 +3,7 @@ import { watchOnce, useDateFormat } from "@vueuse/core";
 import axios from "axios";
 import { watch } from "vue";
 import { useAxios } from "@vueuse/integrations/useAxios";
-import { Button } from "@/Components/ui/button";
+import ToastNotification from "@/Components/ToastNotification.vue";
 import {
     Carousel,
     type CarouselApi,
@@ -15,7 +15,7 @@ import {
 import { Head } from "@inertiajs/vue3";
 import { LaporanP2H } from "@/types/laporanP2h";
 import DialogFuKerusakan from "@/Components/DialogFuKerusakan.vue";
-import { ref, computed } from "vue";
+import { ref, computed, onUnmounted } from "vue";
 
 import {
     Card,
@@ -43,10 +43,12 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/Components/ui/dialog";
-const emit = defineEmits(["is-back-to-table"]);
+const emit = defineEmits(["is-back-to-table", "open-toast"]);
+
 import {
     ArrowsPointingOutIcon,
     CalendarIcon,
+    HandThumbUpIcon,
     MagnifyingGlassCircleIcon,
     NoSymbolIcon,
     UserCircleIcon,
@@ -59,19 +61,54 @@ import {
     PhotoIcon,
 } from "@heroicons/vue/24/solid";
 
+const showToast = ref(false);
+const toastTitle = ref("");
+const toastColor = ref("");
+const toastDescription = ref("");
+
+let toastTimeout = null;
+
+const handleShowToast = ({ title, description, color }) => {
+    showToast.value = true;
+    toastTitle.value = title;
+    toastDescription.value = description;
+
+    // Set the toast color based on the received color
+    const colorNow = color === "green" ? "bg-green-500" : "bg-red-500";
+
+    toastColor.value = colorNow;
+
+    console.log(
+        showToast.value,
+        toastTitle.value,
+        toastDescription.value,
+        toastColor.value
+    );
+};
+
 import { Separator } from "@/Components/ui/separator";
 import { Badge } from "@/Components/ui/badge";
 import { Skeleton } from "@/Components/ui/skeleton";
 const props = defineProps<{ data: LaporanP2H[] }>();
 
 const data = ref<LaporanP2H[]>(props.data);
-
+const statusFollowUpObject = computed(() => {
+    if (data.value.status_follow_up) {
+        try {
+            const parsedObject = JSON.parse(data.value.status_follow_up);
+            return parsedObject;
+        } catch (error) {
+            console.error("Error parsing status_follow_up JSON:", error);
+            return {};
+        }
+    }
+    return {};
+});
 const formattedDate = useDateFormat(
     data.value.tanggal_upload,
     "dddd, D MMMM YYYY hh:mm",
     { locales: "id-ID" }
 );
-
 const kerusakan_unit = ref<LaporanP2H[]>(null);
 const emblaMainApi = ref<CarouselApi>();
 const emblaThumbnailApi = ref<CarouselApi>();
@@ -266,22 +303,76 @@ function checkImages() {
                 <!-- header -->
                 <div class="ml-3 mt-2 inline-flex gap-3">
                     <div class="flex items-center text-gray-600">
-                        <ExclamationTriangleIcon
-                            class="w-5 h-5 mr-2 text-yellow-500"
-                        />
                         <HoverCard>
-                            <HoverCardTrigger as-child>
-                                <a href="" class="underline"
-                                    >Belum Follow Up!</a
-                                >
-                            </HoverCardTrigger>
+                            <template
+                                v-if="
+                                    Object.keys(statusFollowUpObject).length ===
+                                    0
+                                "
+                            >
+                                <ExclamationTriangleIcon
+                                    class="w-5 h-5 mr-2 text-yellow-500 animate-pulse"
+                                />
+                                <p>Belum Follow Up!</p>
+                            </template>
+                            <template v-else>
+                                <!-- Display something else when statusFollowUpObject is not empty -->
+                                <CheckCircleIcon
+                                    class="w-6 h-6 mr-2 text-green-500"
+                                />
+                                <HoverCardTrigger as-child>
+                                    <p class="underline cursor-pointer">
+                                        Sudah Follow Up!
+                                    </p>
+                                </HoverCardTrigger>
+                            </template>
                             <HoverCardContent class="w-80">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="relative flex h-3 w-3">
+                                        <span
+                                            class="animate-ping absolute inline-flex h-full w-full rounded-full"
+                                            :class="
+                                                statusFollowUpObject.status
+                                                    ? 'bg-green-400 opacity-75'
+                                                    : 'bg-red-400 opacity-75'
+                                            "
+                                        ></span>
+                                        <span
+                                            class="relative inline-flex rounded-full h-3 w-3"
+                                            :class="
+                                                statusFollowUpObject.status
+                                                    ? 'bg-green-500'
+                                                    : 'bg-red-500'
+                                            "
+                                        ></span>
+                                    </span>
+                                    <p
+                                        class="text-xs italic"
+                                        :class="
+                                            statusFollowUpObject.status
+                                                ? 'text-green-500'
+                                                : 'text-red-500'
+                                        "
+                                    >
+                                        {{
+                                            statusFollowUpObject.status
+                                                ? "Unit Dapat Beroperasi!"
+                                                : "Unit disarankan tidak beroperasi!"
+                                        }}
+                                    </p>
+                                </div>
+
                                 <div class="flex justify-between space-x-4">
                                     <div class="space-y-1">
-                                        <h4 class="text-sm font-semibold">
-                                            Ahmad Subagio (Askep RDE)
+                                        <h4 class="text-md font-semibold">
+                                            {{
+                                                statusFollowUpObject.userFollowUp
+                                            }}
+                                            ( )
                                         </h4>
-                                        <p class="text-sm">{kata kata}</p>
+                                        <p class="text-sm">
+                                            {{ statusFollowUpObject.komentar }}
+                                        </p>
                                         <div class="flex items-center pt-2">
                                             <CalendarIcon
                                                 class="mr-2 h-4 w-4 opacity-70"
@@ -290,6 +381,9 @@ function checkImages() {
                                                 class="text-xs text-muted-foreground"
                                             >
                                                 Updated
+                                                {{
+                                                    statusFollowUpObject.tanggal_submit
+                                                }}
                                             </span>
                                         </div>
                                     </div>
@@ -620,16 +714,38 @@ function checkImages() {
                             <CheckCircleIcon class="w-5 h-5 mr-2" />
                             Unit Dapat Beroperasi</Button
                         > -->
-                        <DialogFuKerusakan
-                            :textButton="Unit Tidak
-                            Dapat Digunakan"
-                        />
-                        <DialogFuKerusakan
-                            :textButton="Unit Dapat Beroperasi"
-                        />
+
+                        <!-- ... (existing code) -->
+
+                        <div class="flex justify-end gap-4 mt-3">
+                            <template v-if="data.status_follow_up === null">
+                                <DialogFuKerusakan
+                                    :textButton="'Unit Tidak Dapat Digunakan!'"
+                                    :confirmFu="false"
+                                    :idLaporan="data.id"
+                                    :buttonClass="'bg-red-500 hover:bg-red-600'"
+                                    @sendToast="handleShowToast"
+                                />
+                                <DialogFuKerusakan
+                                    :textButton="'Unit Dapat Beroperasi'"
+                                    :confirmFu="true"
+                                    :idLaporan="data.id"
+                                    :buttonClass="'bg-green-500 hover:bg-green-600'"
+                                    @sendToast="handleShowToast"
+                                />
+                            </template>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    <ToastNotification
+        :showToast="showToast"
+        :title="toastTitle"
+        :description="toastDescription"
+        :color="toastColor"
+        :duration="8000"
+        @close-toast="showToast = false"
+    />
 </template>

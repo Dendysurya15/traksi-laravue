@@ -22,7 +22,7 @@ import {
 const props = defineProps<{ data: LaporanP2H[] }>();
 const data = ref<LaporanP2H[]>(props.data);
 
-const live_tanggal = useDateFormat(useNow(), "dddd, M MMM YYYY  HH:mm:ss", {
+const live_tanggal = useDateFormat(useNow(), "dddd, D MMM YYYY  HH:mm:ss", {
     locales: "id-ID",
 });
 const typeContentData = ref("");

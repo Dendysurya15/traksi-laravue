@@ -90,6 +90,12 @@ class HistoryPelaporanP2HController extends Controller
     }
 
 
+    public function getDetailLaporanP2h($id)
+    {
+        $laporan = LaporanP2H::find($id);
+        return response()->json($laporan);
+    }
+
     public function getListKerusakan($id)
     {
 

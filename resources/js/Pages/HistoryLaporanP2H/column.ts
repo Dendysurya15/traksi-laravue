@@ -3,6 +3,7 @@ import {
     ExclamationTriangleIcon,
     EyeIcon,
     PencilIcon,
+    CheckCircleIcon,
 } from "@heroicons/vue/24/solid";
 import { setActionTriggered } from "@/lib/actionStateTable";
 import { updateSharedState } from "@/lib/sharedDataState";
@@ -37,7 +38,7 @@ const renderKerusakanBadge = (value: string | null | undefined) => {
                     h(
                         Badge,
                         {
-                            class: "bg-red-500 text-white rounded-sm mb-1 mr-1",
+                            class: "bg-red-500 text-white  hover:bg-red-600 rounded-sm mb-1 mr-1",
                         },
                         val
                     )
@@ -48,7 +49,7 @@ const renderKerusakanBadge = (value: string | null | undefined) => {
                         h(
                             Badge,
                             {
-                                class: "bg-red-500 text-white rounded-sm mb-1",
+                                class: "bg-red-500 text-white hover:bg-red-600 rounded-sm mb-1",
                             },
                             "...."
                         )
@@ -89,22 +90,50 @@ export const columns: ColumnDef<LaporanP2H>[] = [
         enableHiding: false,
     },
     {
-        id: "customColumn",
+        id: "status_follow_up",
+        accessorKey: "status_follow_up",
         header: () =>
             h("div", { class: "flex items-center" }, [
                 h("span", { class: "mr-2" }, "Status FU Kerusakan"),
             ]),
-        cell: ({ row }) =>
-            h("div", { class: "flex items-center w-36" }, [
-                h(ExclamationTriangleIcon, {
-                    class: "h-5 w-5 text-yellow-500 animate-pulse   ",
-                }),
-                h(
-                    "span",
-                    { class: "ml-2 text-yellow-500" },
-                    "Butuh Follow Up!"
-                ),
-            ]),
+        cell: ({ row }) => {
+            const statusFollowUp = row.getValue("status_follow_up");
+            const kerusakanUnitExist = row.getValue("kerusakan_unit_part");
+
+            if (!kerusakanUnitExist) {
+                return h("div", { class: "flex items-center w-48" }, [
+                    h(CheckCircleIcon, {
+                        class: "h-5 w-5 text-gray-500 ",
+                    }),
+                    h(
+                        "span",
+                        { class: "ml-2 text-gray-500" },
+                        "Tidak Perlu Follow Up!"
+                    ),
+                ]);
+            }
+            if (!statusFollowUp || statusFollowUp === "") {
+                return h("div", { class: "flex items-center w-36" }, [
+                    h(ExclamationTriangleIcon, {
+                        class: "h-5 w-5 text-yellow-500 animate-bounce",
+                    }),
+                    h(
+                        "span",
+                        { class: "ml-2 text-yellow-500" },
+                        "Butuh Follow Up!"
+                    ),
+                ]);
+            } else {
+                return h(
+                    "div",
+                    { class: "flex items-center w-36 text-green-500" },
+                    [
+                        h(CheckCircleIcon, { class: "h-5 w-5" }),
+                        h("span", { class: "ml-2" }, "Sudah Follow Up"),
+                    ]
+                );
+            }
+        },
         enableSorting: true,
     },
     {

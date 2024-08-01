@@ -6,6 +6,7 @@ export interface LaporanP2H {
     foto_unit: string;
     kerusakan_unit: string; // This will be parsed
     kode_unit: string;
+    status_follow_up: string;
     lat: string;
     lon: string;
     status_unit_beroperasi: string;

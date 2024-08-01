@@ -43,14 +43,15 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/Components/ui/dialog";
-const emit = defineEmits(["is-back-to-table", "open-toast"]);
+const emit = defineEmits([
+    "is-back-to-table",
+    "open-toast",
+    "refresh-data-table",
+]);
 
 import {
     ArrowsPointingOutIcon,
     CalendarIcon,
-    HandThumbUpIcon,
-    MagnifyingGlassCircleIcon,
-    NoSymbolIcon,
     UserCircleIcon,
 } from "@heroicons/vue/24/solid";
 import {
@@ -68,30 +69,12 @@ const toastDescription = ref("");
 
 let toastTimeout = null;
 
-const handleShowToast = ({ title, description, color }) => {
-    showToast.value = true;
-    toastTitle.value = title;
-    toastDescription.value = description;
-
-    // Set the toast color based on the received color
-    const colorNow = color === "green" ? "bg-green-500" : "bg-red-500";
-
-    toastColor.value = colorNow;
-
-    console.log(
-        showToast.value,
-        toastTitle.value,
-        toastDescription.value,
-        toastColor.value
-    );
-};
-
-import { Separator } from "@/Components/ui/separator";
 import { Badge } from "@/Components/ui/badge";
 import { Skeleton } from "@/Components/ui/skeleton";
 const props = defineProps<{ data: LaporanP2H[] }>();
 
 const data = ref<LaporanP2H[]>(props.data);
+
 const statusFollowUpObject = computed(() => {
     if (data.value.status_follow_up) {
         try {
@@ -104,6 +87,35 @@ const statusFollowUpObject = computed(() => {
     }
     return {};
 });
+
+const fetchingDataFU = ref(false);
+const fetchErrorFU = ref(null); // Add a new ref to store the error message
+
+const handleShowToast = async ({ title, description, color, id }) => {
+    showToast.value = true;
+    toastTitle.value = title;
+    toastDescription.value = description;
+
+    const colorNow = color === "green" ? "bg-green-500" : "bg-red-500";
+
+    toastColor.value = colorNow;
+
+    try {
+        fetchingDataFU.value = true;
+        fetchErrorFU.value = null;
+        const { data: fetchedData } = await axios.get(
+            `/get-detail-laporan-p2h/${data.value.id}`
+        );
+        data.value = fetchedData;
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        fetchErrorFU.value = error.message;
+    } finally {
+        fetchingDataFU.value = false; // Set loading state to false after fetch is complete
+    }
+
+    emit("refresh-data-table");
+};
 const formattedDate = useDateFormat(
     data.value.tanggal_upload,
     "dddd, D MMMM YYYY hh:mm",
@@ -203,25 +215,6 @@ function checkImages() {
                     class="w-8 h-8 text-gray-400 cursor-pointer"
                 />
 
-                <!-- <template v-if="fetchingData">
-                    <Skeleton class="w-[200px] h-7 bg-gray-200" />
-                </template>
-                <template v-else-if="fetchError">
-                    <Badge variant="secondary" class="text-sm cursor-pointer">
-                        <ExclamationTriangleIcon class="w-5 h-5 mr-2" />
-                        Status Error
-                    </Badge>
-                </template>
-                <template v-else>
-                    <Badge
-                        variant="destructive"
-                        class="text-sm xs:text-xs sm:text-base rs:text-sm cursor-pointer"
-                    >
-                        <ExclamationTriangleIcon class="w-5 h-5 mr-2" />
-                        Unit Terdapat Kerusakan
-                    </Badge>
-                </template> -->
-
                 <span
                     class="text-lg xs:text-base sm:text-base rs:text-sm font-semibold text-gray-500"
                 >
@@ -234,19 +227,6 @@ function checkImages() {
                 >
             </div>
             <div class="flex gap-2">
-                <!-- <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger as-child>
-                            <MapIcon
-                                class="w-7 h-7 text-green-500 cursor-pointer"
-                            />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Koordinat Ketika User Upload</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider> -->
-
                 <Dialog>
                     <div class="flex items-center">
                         <DialogTrigger as-child>
@@ -303,101 +283,125 @@ function checkImages() {
                 <!-- header -->
                 <div class="ml-3 mt-2 inline-flex gap-3">
                     <div class="flex items-center text-gray-600">
-                        <HoverCard>
-                            <template
-                                v-if="
-                                    Object.keys(statusFollowUpObject).length ===
-                                    0
-                                "
-                            >
-                                <ExclamationTriangleIcon
-                                    class="w-5 h-5 mr-2 text-yellow-500 animate-pulse"
-                                />
-                                <p>Belum Follow Up!</p>
-                            </template>
-                            <template v-else>
-                                <!-- Display something else when statusFollowUpObject is not empty -->
-                                <CheckCircleIcon
-                                    class="w-6 h-6 mr-2 text-green-500"
-                                />
-                                <HoverCardTrigger as-child>
-                                    <p class="underline cursor-pointer">
-                                        Sudah Follow Up!
-                                    </p>
-                                </HoverCardTrigger>
-                            </template>
-                            <HoverCardContent class="w-80">
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="relative flex h-3 w-3">
-                                        <span
-                                            class="animate-ping absolute inline-flex h-full w-full rounded-full"
-                                            :class="
-                                                statusFollowUpObject.status
-                                                    ? 'bg-green-400 opacity-75'
-                                                    : 'bg-red-400 opacity-75'
-                                            "
-                                        ></span>
-                                        <span
-                                            class="relative inline-flex rounded-full h-3 w-3"
-                                            :class="
-                                                statusFollowUpObject.status
-                                                    ? 'bg-green-500'
-                                                    : 'bg-red-500'
-                                            "
-                                        ></span>
-                                    </span>
-                                    <p
-                                        class="text-xs italic"
-                                        :class="
-                                            statusFollowUpObject.status
-                                                ? 'text-green-500'
-                                                : 'text-red-500'
-                                        "
-                                    >
-                                        {{
-                                            statusFollowUpObject.status
-                                                ? "Unit Dapat Beroperasi!"
-                                                : "Unit disarankan tidak beroperasi!"
-                                        }}
-                                    </p>
-                                </div>
-
-                                <div class="flex justify-between space-x-4">
-                                    <div class="space-y-1">
-                                        <h4 class="text-md font-semibold">
-                                            {{
-                                                statusFollowUpObject.userFollowUp
-                                            }}
-                                            ( )
-                                        </h4>
-                                        <p class="text-sm">
-                                            {{ statusFollowUpObject.komentar }}
+                        <template v-if="fetchingData">
+                            <div class="flex items-center">
+                                <Skeleton class="w-7 h-7 mr-2" />
+                                <Skeleton class="w-3 h-7 w-20" />
+                            </div>
+                        </template>
+                        <template v-else-if="fetchErrorFU">
+                            <div class="flex items-center text-red-500">
+                                <ExclamationCircleIcon class="w-5 h-5 mr-2" />
+                                <p>{{ fetchError }}</p>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <HoverCard>
+                                <template
+                                    v-if="
+                                        Object.keys(statusFollowUpObject)
+                                            .length === 0
+                                    "
+                                >
+                                    <ExclamationTriangleIcon
+                                        class="w-5 h-5 mr-2 text-yellow-500 animate-pulse"
+                                    />
+                                    <p>Belum Follow Up!</p>
+                                </template>
+                                <template v-else>
+                                    <!-- Display something else when statusFollowUpObject is not empty -->
+                                    <CheckCircleIcon
+                                        class="w-6 h-6 mr-2 text-green-500"
+                                    />
+                                    <HoverCardTrigger as-child>
+                                        <p class="underline cursor-pointer">
+                                            Sudah Follow Up!
                                         </p>
-                                        <div class="flex items-center pt-2">
-                                            <CalendarIcon
-                                                class="mr-2 h-4 w-4 opacity-70"
-                                            />
+                                    </HoverCardTrigger>
+                                </template>
+                                <HoverCardContent class="w-80">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="relative flex h-3 w-3">
                                             <span
-                                                class="text-xs text-muted-foreground"
-                                            >
-                                                Updated
+                                                class="animate-ping absolute inline-flex h-full w-full rounded-full"
+                                                :class="
+                                                    statusFollowUpObject.status
+                                                        ? 'bg-green-400 opacity-75'
+                                                        : 'bg-red-400 opacity-75'
+                                                "
+                                            ></span>
+                                            <span
+                                                class="relative inline-flex rounded-full h-3 w-3"
+                                                :class="
+                                                    statusFollowUpObject.status
+                                                        ? 'bg-green-500'
+                                                        : 'bg-red-500'
+                                                "
+                                            ></span>
+                                        </span>
+                                        <p
+                                            class="text-xs italic"
+                                            :class="
+                                                statusFollowUpObject.status
+                                                    ? 'text-green-500'
+                                                    : 'text-red-500'
+                                            "
+                                        >
+                                            {{
+                                                statusFollowUpObject.status
+                                                    ? "Unit Dapat Beroperasi!"
+                                                    : "Unit disarankan tidak beroperasi!"
+                                            }}
+                                        </p>
+                                    </div>
+
+                                    <div class="flex justify-between space-x-4">
+                                        <div class="space-y-1">
+                                            <h4 class="text-md font-semibold">
                                                 {{
-                                                    statusFollowUpObject.tanggal_submit
+                                                    statusFollowUpObject.userFollowUp
                                                 }}
-                                            </span>
+                                            </h4>
+                                            <p class="text-sm">
+                                                {{
+                                                    statusFollowUpObject.komentar
+                                                }}
+                                            </p>
+                                            <div class="flex items-center pt-2">
+                                                <CalendarIcon
+                                                    class="mr-2 h-4 w-4 opacity-70"
+                                                />
+                                                <span
+                                                    class="text-xs text-muted-foreground"
+                                                >
+                                                    Updated
+                                                    {{
+                                                        statusFollowUpObject.tanggal_submit
+                                                    }}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </HoverCardContent>
-                        </HoverCard>
+                                </HoverCardContent>
+                            </HoverCard>
+                        </template>
                     </div>
                     <div class="flex items-center text-gray-600">
-                        <span
-                            class="inline-flex mr-2 items-center justify-center w-5 h-5 ms-2 text-xs font-semibold text-white bg-red-500 rounded-full"
-                        >
-                            3
-                        </span>
-                        Total Laporan Kerusakan
+                        <div v-if="fetchingData" class="loading-indicator">
+                            <Skeleton class="w-48 h-7 mr-2" />
+                        </div>
+                        <div v-else-if="fetchError" class="error-message">
+                            Error fetching data:
+                            {{ fetchError.message }}
+                        </div>
+                        <div v-else class="flex items-center">
+                            <span
+                                class="inline-flex mr-2 items-center justify-center w-5 h-5 ms-2 text-xs font-semibold text-white bg-red-500 rounded-full"
+                            >
+                                {{ kerusakan_unit.length }}
+                            </span>
+                            Total Laporan Kerusakan
+                        </div>
                     </div>
                     <div class="flex items-center text-gray-600">
                         <UserCircleIcon class="w-6 h-6 mr-2 text-gray-600" />
@@ -504,7 +508,7 @@ function checkImages() {
                                                         @click="
                                                             handleIconClickImagePreview
                                                         "
-                                                        class="w-8 h-8 hover:text-gray-300 text-gray-100 cursor-pointer"
+                                                        class="w-8 h-8 hover:text-gray-700 text-gray-500 bg-white rounded cursor-pointer"
                                                     />
                                                 </DialogTrigger>
                                             </div>

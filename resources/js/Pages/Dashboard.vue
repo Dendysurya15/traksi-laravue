@@ -45,7 +45,7 @@ async function getData(page = 1, paginate = 10): Promise<void> {
         errorFetching.value = null;
 
         const { data: fetchedData, error: isError } = useAxios(
-            "/fetch-data",
+            "/fetch-data-table-p2h",
             {
                 params: {
                     paginate: paginate,
@@ -189,6 +189,7 @@ function refreshData() {
                                     :data="detailContentData"
                                     :typeContent="typeContentData"
                                     @is-back-to-table="checkBackToTable"
+                                    @refresh-data-table="refreshData"
                                 />
                             </div>
                         </div>

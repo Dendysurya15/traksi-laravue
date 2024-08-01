@@ -13,7 +13,7 @@ import {
 import {
     CheckCircleIcon,
     ExclamationTriangleIcon,
-    WrenchScrewdriverIcon,
+    NoSymbolIcon,
 } from "@heroicons/vue/24/solid";
 import { useDateFormat, useNow } from "@vueuse/core";
 import axios from "axios";
@@ -88,9 +88,7 @@ watch(isSubmitting, (newValue) => {
                     />
                 </template>
                 <template v-else>
-                    <WrenchScrewdriverIcon
-                        class="w-5 h-5 text-white cursor-pointer"
-                    />
+                    <NoSymbolIcon class="w-5 h-5 text-white cursor-pointer" />
                 </template>
                 {{ textButton }}
             </Button>

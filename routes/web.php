@@ -32,9 +32,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/dashboard', [HistoryPelaporanP2HController::class, 'index'])->name('dashboard');
-    Route::get('/fetch-data', [HistoryPelaporanP2HController::class, 'fetchDataTableP2H'])->name('fetch-data');
+    Route::get('/fetch-data-table-p2h', [HistoryPelaporanP2HController::class, 'fetchDataTableP2H'])->name('fetch-data-table-p2h');
     Route::get('/get-info-kerusakan/{id}', [HistoryPelaporanP2HController::class, 'getListKerusakan'])->name('get-info-kerusakan');
 
+    Route::get('/get-detail-laporan-p2h/{id}', [HistoryPelaporanP2HController::class, 'getDetailLaporanP2h'])->name('get-detail-laporan-p2h');
     Route::post('/change-status-fu-kerusakan', [HistoryPelaporanP2HController::class, 'changeStatusFuKerusakan'])->name('change-status-fu-kerusakan');
 });
 

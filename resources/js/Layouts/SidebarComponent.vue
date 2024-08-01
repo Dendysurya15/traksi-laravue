@@ -64,7 +64,7 @@ export default defineComponent({
             </div>
 
             <div class="flex-col ml-2">
-                <p class="font-bold text-lg">Monitoring Traksi</p>
+                <p class="font-bold text-lg">Fleet Management</p>
                 <p
                     class="rounded-sm bg-green-800 text-sm text-gray-50 font-medium pl-3 pr-3 inline-block"
                 >

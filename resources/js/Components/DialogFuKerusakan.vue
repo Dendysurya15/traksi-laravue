@@ -1,85 +1,5 @@
-<script setup lang="ts">
-import { ref, watch } from "vue";
-import { Button } from "@/Components/ui/button";
-import { usePage } from "@inertiajs/vue3";
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/Components/ui/dialog";
-import {
-    CheckCircleIcon,
-    ExclamationTriangleIcon,
-    NoSymbolIcon,
-} from "@heroicons/vue/24/solid";
-import { useDateFormat, useNow } from "@vueuse/core";
-import axios from "axios";
-const live_tanggal = useDateFormat(useNow(), "dddd, D MMM YYYY  HH:mm:ss", {
-    locales: "id-ID",
-});
-const props = defineProps<{
-    textButton: string;
-    buttonClass: string;
-    confirmFu: boolean;
-    idLaporan: string;
-    userFollowUp: string;
-    tanggal_submit: string;
-}>();
-const page = usePage();
-const user = page.props.auth.user;
-const isSubmitting = ref(false);
-const formData = ref({
-    status: props.confirmFu,
-    komentar: "",
-    idLaporan: props.idLaporan,
-    userFollowUp: user.nama_lengkap,
-    tanggal_submit: "",
-});
-const open = ref(false);
-
-const emits = defineEmits(["sendToast"]);
-
-const submitForm = async () => {
-    isSubmitting.value = true;
-
-    await new Promise((resolve) => setTimeout(resolve, 1300));
-
-    try {
-        // Submit form data to Laravel backend
-        const response = await axios.post(
-            "/change-status-fu-kerusakan",
-            formData.value
-        );
-        emits("sendToast", {
-            title: "Sukses",
-            color: "green",
-            description: "Berhasil submit follow up!",
-        });
-        open.value = false; // Close the dialog after successful submission
-    } catch (error) {
-        emits("sendToast", {
-            title: "Error",
-            color: "red",
-            description: error,
-        });
-    } finally {
-        isSubmitting.value = false;
-    }
-};
-
-watch(isSubmitting, (newValue) => {
-    if (newValue) {
-        // Store the current date and time when the submit button is clicked
-        formData.value.tanggal_submit = live_tanggal.value;
-    }
-});
-</script>
-
 <template>
-    <Dialog v-model:open="open">
+    <Dialog v-model:open="open" @close="resetError">
         <DialogTrigger as-child>
             <Button :class="buttonClass" class="gap-1">
                 <template v-if="confirmFu">
@@ -125,7 +45,7 @@ watch(isSubmitting, (newValue) => {
                     ></textarea>
                 </div>
             </div>
-
+            <p v-if="showError" class="text-red-500">Komentar harus diisi!</p>
             <DialogFooter class="flex justify-end items-end">
                 <button
                     type="button"
@@ -151,3 +71,104 @@ watch(isSubmitting, (newValue) => {
         </DialogContent>
     </Dialog>
 </template>
+
+<script setup lang="ts">
+import { ref, watch } from "vue";
+import { Button } from "@/Components/ui/button";
+import { usePage } from "@inertiajs/vue3";
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/Components/ui/dialog";
+import {
+    CheckCircleIcon,
+    ExclamationTriangleIcon,
+    NoSymbolIcon,
+} from "@heroicons/vue/24/solid";
+import { useDateFormat, useNow } from "@vueuse/core";
+import axios from "axios";
+
+const live_tanggal = useDateFormat(useNow(), "dddd, D MMM YYYY  HH:mm:ss", {
+    locales: "id-ID",
+});
+const props = defineProps<{
+    textButton: string;
+    buttonClass: string;
+    confirmFu: boolean;
+    idLaporan: string;
+    userFollowUp: string;
+    tanggal_submit: string;
+}>();
+
+const showError = ref(false);
+const open = ref(false);
+const page = usePage();
+const user = page.props.auth.user;
+const isSubmitting = ref(false);
+const formData = ref({
+    status: props.confirmFu,
+    komentar: "",
+    idLaporan: props.idLaporan,
+    userFollowUp: user.nama_lengkap,
+    tanggal_submit: "",
+});
+
+const emits = defineEmits(["sendToast", "gasBro"]);
+
+const resetError = () => {
+    showError.value = false;
+};
+
+watch(open, (newValue) => {
+    if (!newValue) {
+        resetError();
+    }
+});
+
+const submitForm = async () => {
+    isSubmitting.value = true;
+
+    await new Promise((resolve) => setTimeout(resolve, 1300));
+
+    showError.value = false; // Reset the error message
+    if (!props.confirmFu && formData.value.komentar.trim() === "") {
+        showError.value = true; // Show the error message
+        isSubmitting.value = false; // Stop the loading indicator
+        return;
+    }
+
+    try {
+        // Submit form data to Laravel backend
+        const response = await axios.post(
+            "/change-status-fu-kerusakan",
+            formData.value
+        );
+        emits("sendToast", {
+            title: "Sukses",
+            color: "green",
+            description: "Berhasil submit follow up!",
+        });
+
+        open.value = false; // Close the dialog after successful submission
+    } catch (error) {
+        emits("sendToast", {
+            title: "Error",
+            color: "red",
+            description: error,
+        });
+    } finally {
+        isSubmitting.value = false; // Stop the loading indicator
+    }
+};
+
+watch(isSubmitting, (newValue) => {
+    if (newValue) {
+        // Store the current date and time when the submit button is clicked
+        formData.value.tanggal_submit = live_tanggal.value;
+    }
+});
+</script>

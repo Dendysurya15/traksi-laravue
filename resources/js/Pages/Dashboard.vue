@@ -13,6 +13,7 @@ import { LaporanP2H } from "@/types/laporanP2h";
 import DetailLaporanP2H from "@/Pages/HistoryLaporanP2H/detail-laporan.vue";
 import { useDateFormat, useNow } from "@vueuse/core";
 import { Badge } from "@/Components/ui/badge";
+
 import {
     ArrowPathIcon,
     SignalSlashIcon,

@@ -95,27 +95,23 @@ const handleShowToast = async ({ title, description, color, id }) => {
     showToast.value = true;
     toastTitle.value = title;
     toastDescription.value = description;
-
     const colorNow = color === "green" ? "bg-green-500" : "bg-red-500";
-
     toastColor.value = colorNow;
-
     try {
         fetchingDataFU.value = true;
         fetchErrorFU.value = null;
-        const { data: fetchedData } = await axios.get(
+        const response = await axios.get(
             `/get-detail-laporan-p2h/${data.value.id}`
         );
-        data.value = fetchedData;
+        data.value = response.data;
     } catch (error) {
         console.error("Error fetching data:", error);
         fetchErrorFU.value = error.message;
     } finally {
         fetchingDataFU.value = false; // Set loading state to false after fetch is complete
     }
-
-    emit("refresh-data-table");
 };
+
 const formattedDate = useDateFormat(
     data.value.tanggal_upload,
     "dddd, D MMMM YYYY hh:mm",
@@ -187,6 +183,7 @@ watchOnce(emblaMainApi, (emblaMainApi) => {
 });
 function backToTable() {
     emit("is-back-to-table");
+    emit("refresh-data-table");
 }
 function checkImages() {
     if (kerusakan_unit.value) {
@@ -283,10 +280,10 @@ function checkImages() {
                 <!-- header -->
                 <div class="ml-3 mt-2 inline-flex gap-3">
                     <div class="flex items-center text-gray-600">
-                        <template v-if="fetchingData">
+                        <template v-if="fetchingDataFu">
                             <div class="flex items-center">
-                                <Skeleton class="w-7 h-7 mr-2" />
-                                <Skeleton class="w-3 h-7 w-20" />
+                                <Skeleton class="w-7 h-7 mr-2 bg-gray-200" />
+                                <Skeleton class="w-3 h-7 w-20 bg-gray-200" />
                             </div>
                         </template>
                         <template v-else-if="fetchErrorFU">
@@ -388,7 +385,7 @@ function checkImages() {
                     </div>
                     <div class="flex items-center text-gray-600">
                         <div v-if="fetchingData" class="loading-indicator">
-                            <Skeleton class="w-48 h-7 mr-2" />
+                            <Skeleton class="w-48 h-7 mr-2 bg-gray-200" />
                         </div>
                         <div v-else-if="fetchError" class="error-message">
                             Error fetching data:

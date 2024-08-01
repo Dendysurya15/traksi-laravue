@@ -1,6 +1,10 @@
 <script setup>
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 import { Link } from "@inertiajs/vue3";
+
+defineProps({
+    appName: String, // Define the appName prop
+});
 </script>
 
 <template>
@@ -43,7 +47,7 @@ import { Link } from "@inertiajs/vue3";
                     <p
                         class="scroll-m-20 ml-3 text-white text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-3xl font-semibold tracking-tight"
                     >
-                        Monitoring-Traksi
+                        Fleet Management
                     </p>
                 </div>
                 <div

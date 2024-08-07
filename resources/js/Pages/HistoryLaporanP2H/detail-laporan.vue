@@ -127,6 +127,7 @@ const selectedImageFotoUnit = `/img/documents/LaporP2H/${data.value.foto_unit}`;
 const selectedNameImage = ref<string | null>(null);
 const selectedNameImageFotoUnit = data.value.foto_unit;
 const imageExists = ref<boolean[]>([]);
+
 const {
     data: fetchedData,
     error: fetchError,

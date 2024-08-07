@@ -38,7 +38,7 @@ const renderKerusakanBadge = (value: string | null | undefined) => {
                     h(
                         Badge,
                         {
-                            class: "bg-red-500 text-white  hover:bg-red-600 rounded-sm mb-1 mr-1",
+                            class: "bg-[#002741] text-white  hover:bg-blue-900 rounded-sm mb-1 mr-1",
                         },
                         val
                     )
@@ -49,7 +49,7 @@ const renderKerusakanBadge = (value: string | null | undefined) => {
                         h(
                             Badge,
                             {
-                                class: "bg-red-500 text-white hover:bg-red-600 rounded-sm mb-1",
+                                class: "bg-[#002741] text-white hover:bg-blue-900 rounded-sm mb-1",
                             },
                             "...."
                         )
@@ -237,8 +237,11 @@ export const columns: ColumnDef<LaporanP2H>[] = [
         enableHiding: false,
         cell: ({ row }) => {
             const data = row.original;
+
+            console.log(row.original);
             const kerusakanUnitPart = row.getValue("kerusakan_unit_part");
 
+            console.log("kerusakanUnitPart", kerusakanUnitPart);
             return kerusakanUnitPart
                 ? h(
                       "div",

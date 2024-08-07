@@ -15,7 +15,33 @@ class HistoryPelaporanP2HController extends Controller
     public function index(Request $request)
     {
         $query = LaporanP2H::paginate($request->input('paginate', 10));
+        $listPertanyaan = ListPertanyaan::get()->keyBy('id')->toArray();
 
+
+        foreach ($query as $laporan) {
+            if (!empty($laporan->kerusakan_unit)) {
+                $kerusakanUnit = json_decode($laporan->kerusakan_unit, true);
+
+                if (is_array($kerusakanUnit)) {
+                    // Initialize an array to hold the nama_pertanyaan
+                    $newKerusakanUnit = [];
+
+                    // Iterate over the decoded kerusakan_unit
+                    foreach ($kerusakanUnit as $key => $value) {
+                        if (array_key_exists($key, $listPertanyaan)) {
+                            $newKerusakanUnit[] = $listPertanyaan[$key]['nama_pertanyaan'];
+                        }
+                    }
+
+                    // Convert the new array back to JSON
+                    $laporan->kerusakan_unit_part = json_encode($newKerusakanUnit);
+                } else {
+                    $laporan->kerusakan_unit_part = '';
+                }
+            } else {
+                $laporan->kerusakan_unit_part = '';
+            }
+        }
         return Inertia::render('Dashboard', [
             'data' => $query,
         ]);
@@ -25,28 +51,34 @@ class HistoryPelaporanP2HController extends Controller
     {
         $perPage = $request->input('paginate', 10);
         $query = LaporanP2H::orderBy('tanggal_upload', 'desc')->paginate($perPage);
-
         // Decode kerusakan_unit and get listPertanyaan
         $listPertanyaan = ListPertanyaan::get()->keyBy('id')->toArray();
 
 
         foreach ($query as $laporan) {
+            $kerusakanUnit = '';
             if (!empty($laporan->kerusakan_unit)) {
-                $kerusakanUnit = json_decode($laporan->kerusakan_unit, true);
 
-                // Initialize an array to hold the nama_pertanyaan
-                $newKerusakanUnit = [];
+                $cleanedKerusakanUnit = str_replace(["\r\n", "\n", "\r"], '', $laporan->kerusakan_unit);
 
-                // Iterate over the decoded kerusakan_unit
-                foreach ($kerusakanUnit as $key => $value) {
-                    if (array_key_exists($key, $listPertanyaan)) {
-                        // Get the nama_pertanyaan and append to the new array
-                        $newKerusakanUnit[] = $listPertanyaan[$key]['nama_pertanyaan'];
+                $kerusakanUnit = json_decode($cleanedKerusakanUnit, true);
+
+                if (is_array($kerusakanUnit)) {
+                    // Initialize an array to hold the nama_pertanyaan
+
+                    $newKerusakanUnit = [];
+                    // Iterate over the decoded kerusakan_unit
+                    foreach ($kerusakanUnit as $key => $value) {
+                        if (array_key_exists($key, $listPertanyaan)) {
+                            $newKerusakanUnit[] = $listPertanyaan[$key]['nama_pertanyaan'];
+                        }
                     }
-                }
 
-                // Convert the new array back to JSON
-                $laporan->kerusakan_unit_part = json_encode($newKerusakanUnit);
+                    // Convert the new array back to JSON
+                    $laporan->kerusakan_unit_part = json_encode($newKerusakanUnit);
+                } else {
+                    $laporan->kerusakan_unit_part = '';
+                }
             } else {
                 $laporan->kerusakan_unit_part = '';
             }

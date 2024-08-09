@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head } from "@inertiajs/vue3";
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import axios from "axios";
 import { Skeleton } from "@/Components/ui/skeleton";
 import { useAxios } from "@vueuse/integrations/useAxios";
@@ -15,43 +15,19 @@ import { useDateFormat, useNow } from "@vueuse/core";
 import { Badge } from "@/Components/ui/badge";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
+import FilterSelectOptionHistoryP2H from "@/Components/FilterSelectOptionHistoryP2H.vue";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
+import { ArrowPathIcon, SignalSlashIcon } from "@heroicons/vue/24/solid";
+import ChartHistoryP2H from "@/Components/ChartHistoryP2H.vue";
 
+const activeFilterType = ref(null);
 const date = ref();
-
-const selectDate = () => {
-    console.log(date.value);
-};
-
 const formatVueDatePicker = (date) => {
     return "";
 };
-import type { DateValue } from "@internationalized/date";
-import {
-    RangeCalendarCell,
-    RangeCalendarCellTrigger,
-    RangeCalendarGrid,
-    RangeCalendarGridBody,
-    RangeCalendarGridHead,
-    RangeCalendarGridRow,
-    RangeCalendarHeadCell,
-    RangeCalendarHeader,
-    RangeCalendarHeading,
-    RangeCalendarNext,
-    RangeCalendarPrev,
-    RangeCalendarRoot,
-} from "radix-vue";
-
-import {
-    ArrowPathIcon,
-    SignalSlashIcon,
-    WifiIcon,
-    CalendarIcon,
-} from "@heroicons/vue/24/solid";
-import ChartHistoryP2H from "@/Components/ChartHistoryP2H.vue";
-
 const props = defineProps<{ data: LaporanP2H[] }>();
 const data = ref<LaporanP2H[]>(props.data);
-
 const live_tanggal = useDateFormat(useNow(), "dddd, D MMM YYYY  HH:mm:ss", {
     locales: "id-ID",
 });
@@ -67,12 +43,133 @@ const pagination = ref<PaginationMeta>({
 });
 
 const handleDateRangeSelection = (selectedRange) => {
-    console.log("Selected Date Range:", selectedRange);
-    // You can perform additional operations with the selected date range here
+    if (filterSelectOptionRef.value) {
+        filterSelectOptionRef.value.resetSelectedOption();
+    }
+    if (selectedRange === null) {
+        clearDateFilter();
+        return;
+    }
+    // console.log("Selected Date Range:", selectedRange);
+    date.value = selectedRange; // Update the date variable with the selected range
+    activeFilterType.value = "date"; // Set the active filter type to 'date'
+    // Reset the select option filter
+    activeFilter.value = null;
+
+    fetchChartData();
 };
+
+const clearDateFilter = () => {
+    if (filterSelectOptionRef.value) {
+        filterSelectOptionRef.value.resetSelectedOption();
+    }
+    date.value = null;
+    activeFilterType.value = null;
+};
+
+const clearActiveFilter = () => {
+    activeFilter.value = null;
+
+    date.value = null;
+    activeFilterType.value = null;
+
+    if (filterSelectOptionRef.value) {
+        filterSelectOptionRef.value.resetSelectedOption();
+    }
+};
+const filterSelectOptionRef = ref(null);
+const activeFilter = ref(null);
 const isFetchingData = ref(true);
 const errorFetching = ref<string | null>(null);
 
+const formatDateRange = (dateRange) => {
+    if (!dateRange || dateRange.length !== 2) {
+        return "Date Range";
+    }
+    const [startDate, endDate] = dateRange;
+    const formattedStartDate = format(startDate, "dd MMMM yyyy", {
+        locale: id,
+    });
+    const formattedEndDate = endDate
+        ? format(endDate, "dd MMMM yyyy", { locale: id })
+        : "";
+
+    return `${formattedStartDate} - ${formattedEndDate}`;
+};
+const updatedSeries = ref([]);
+const updatedXAxisCategories = ref([]);
+const isChartDataLoading = ref(false);
+
+async function fetchChartData() {
+    try {
+        isChartDataLoading.value = true; // Set loading state to true
+
+        let params = {};
+
+        // Check if there's an active filter
+        if (activeFilterType.value === "option") {
+            // Include the selected option as a parameter
+            params.option = activeFilter.value;
+        } else if (activeFilterType.value === "date") {
+            // Include the selected date range as parameters
+            const [startDate, endDate] = date.value;
+            params.startDate = startDate ? formatDate(startDate) : null;
+            params.endDate = endDate ? formatDate(endDate) : null;
+        }
+
+        // await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        const { data: chartData, error: isError } = await useAxios(
+            "/fetch-chart-history-p2h",
+            {
+                params,
+            },
+            axios
+        );
+
+        if (chartData.value) {
+            // Update the chart data with the fetched data
+            updatedSeries.value = chartData.value.series;
+            updatedXAxisCategories.value = chartData.value.xAxis;
+        }
+
+        if (isError.value) {
+            console.error("Error fetching chart data:", isError.value);
+        }
+    } catch (error) {
+        console.error("Error fetching chart data:", error);
+    } finally {
+        isChartDataLoading.value = false; // Set loading state to false
+    }
+}
+
+const computedChartOptions = computed(() => ({
+    ...chartOptions,
+    xaxis: {
+        ...chartOptions.xaxis,
+        categories: updatedXAxisCategories.value,
+    },
+}));
+
+const series = ref(updatedSeries.value);
+
+watch([updatedSeries, updatedXAxisCategories], ([newSeries, newCategories]) => {
+    if (
+        newSeries !== series.value ||
+        newCategories !== computedChartOptions.value.xaxis.categories
+    ) {
+        series.value = newSeries;
+        computedChartOptions.value.xaxis.categories = newCategories;
+    }
+});
+
+function formatDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
 async function getData(page = 1, paginate = 10): Promise<void> {
     try {
         isFetchingData.value = true;
@@ -116,38 +213,20 @@ async function getData(page = 1, paginate = 10): Promise<void> {
         isFetchingData.value = false;
     }
 }
-const activeFilter = ref(null);
-const selectedOption = ref(null);
-const showOptions = ref(false);
-const options = [
-    { value: "Minggu", label: "Minggu" },
-    { value: "Bulan", label: "Bulan" },
-    { value: "Tahun", label: "Tahun" },
-];
 
-const selectOption = (value) => {
-    selectedOption.value = options.find(
-        (option) => option.value === value
-    ).label;
-
-    showOptions.value = false;
+function selectOption(value) {
     activeFilter.value = value;
-};
+    activeFilterType.value = "option"; // Set the active filter type to 'option'
+    date.value = null; // Reset the date variable
 
-const resetSelectedOption = () => {
-    selectedOption.value = null;
-    activeFilter.value = false;
-};
-
-const toggleOptions = () => {
-    showOptions.value = !showOptions.value;
-};
+    fetchChartData();
+}
 
 onMounted(async () => {
     await getData();
-    const startDate = new Date();
+    // const startDate = new Date();
     // const endDate = new Date(new Date().setDate(startDate.getDate() + 7));
-    date.value = [startDate, null];
+    // date.value = [startDate, null];
 });
 
 function actionStateTableTrigger() {
@@ -170,12 +249,13 @@ function checkBackToTable() {
 function refreshData() {
     getData(pagination.value.current_page, pagination.value.per_page);
 }
-const series = [
-    {
-        name: "Laporan P2H",
-        data: [31, 40, 28, 51, 42, 109, 100],
-    },
-];
+
+// const series = [
+//     {
+//         name: "Laporan P2H",
+//         data: [31, 40, 28, 51, 42, 109, 100],
+//     },
+// ];
 
 const chartOptions = {
     chart: {
@@ -219,14 +299,9 @@ const chartOptions = {
 };
 </script>
 <style>
-/* .custom-select {
-    cursor: pointer;
-    color: var(--vp-c-text-2);
-    background-color: aqua;
-
-    margin: 0;
-    display: inline-block; */
-/* } */
+.dp__theme_light {
+    --dp-primary-color: #002741;
+}
 </style>
 <template>
     <Head title="Dashboard" />
@@ -253,61 +328,10 @@ const chartOptions = {
                             <div
                                 class="flex px-5 gap-2 mb-3 justify-start mt-3 items-center"
                             >
-                                <div class="relative">
-                                    <div
-                                        class="w-[180px] border border-gray-300 rounded-md px-3 py-1.5 cursor-pointer flex items-center justify-between"
-                                        @click="toggleOptions"
-                                    >
-                                        <span
-                                            v-if="selectedOption"
-                                            class="text-gray-800"
-                                            >{{ selectedOption }}</span
-                                        >
-                                        <span
-                                            v-else
-                                            class="text-gray-400 flex items-center"
-                                        >
-                                            <CalendarIcon
-                                                class="mr-2 h-4 w-4 opacity-70"
-                                            />
-                                            Filter Chart</span
-                                        >
-                                        <svg
-                                            class="w-4 h-4 ml-2 inline-block transition-transform"
-                                            :class="{
-                                                'rotate-180': showOptions,
-                                            }"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                        >
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M19 9l-7 7-7-7"
-                                            ></path>
-                                        </svg>
-                                    </div>
-                                    <div
-                                        v-show="showOptions"
-                                        class="absolute z-10 w-[180px] mt-2 bg-white border border-gray-300 rounded-md shadow-lg"
-                                    >
-                                        <div class="py-1">
-                                            <div
-                                                v-for="option in options"
-                                                :key="option.value"
-                                                class="px-3 py-2 cursor-pointer hover:bg-gray-100"
-                                                @click="
-                                                    selectOption(option.value)
-                                                "
-                                            >
-                                                {{ option.label }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <FilterSelectOptionHistoryP2H
+                                    @option-selected="selectOption"
+                                    ref="filterSelectOptionRef"
+                                />
 
                                 <div>
                                     <VueDatePicker
@@ -322,36 +346,62 @@ const chartOptions = {
                                         "
                                     >
                                         <!-- <template #action-buttons>
-                                        <p
-                                            @click="selectDate"
-                                            class="bg-green-500 text-white px-2 py-1 rounded cursor-pointer hover:bg-green-600"
-                                        >
-                                            Submit
-                                        </p>
-                                    </template> -->
+                                            <p
+                                                @click="selectDate"
+                                                class="bg-green-500 text-white px-2 py-1 rounded cursor-pointer hover:bg-green-600"
+                                            >
+                                                Submit
+                                            </p>
+                                        </template> -->
                                     </VueDatePicker>
                                 </div>
                             </div>
 
                             <div
-                                v-if="activeFilter"
+                                v-if="activeFilterType"
                                 class="bg-[#fafafa] mx-5 rounded-sm mt-4 px-5 py-2 mb-3 ring-1 ring-gray-300 p-1 mt-2 flex items-center justify-between"
                             >
                                 <div class="flex">
                                     <span class="text-gray-800 mr-2"
-                                        >Filter Aktif :</span
+                                        >Filter Aktif:</span
                                     >
                                     <span
-                                        class="bg-yellow-100 text-yellow-500 font-medium ring-2 ring-yellow-200 px-2 rounded-md flex items-center"
+                                        v-if="activeFilterType === 'option'"
+                                        class="bg-green-100 text-green-500 font-medium ring-2 ring-green-200 px-2 rounded-md flex items-center"
                                     >
                                         {{ activeFilter }}
                                         <button
                                             type="button"
-                                            @click="resetSelectedOption()"
                                             class="ml-2 text-white hover:text-gray-200 focus:outline-none"
+                                            @click="clearActiveFilter"
                                         >
                                             <svg
-                                                class="h-4 w-4 text-yellow-300 hover:text-yellow-600"
+                                                class="h-4 w-4 text-green-300 hover:text-green-600"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M6 18L18 6M6 6l12 12"
+                                                />
+                                            </svg>
+                                        </button>
+                                    </span>
+                                    <span
+                                        v-else-if="activeFilterType === 'date'"
+                                        class="bg-green-100 text-green-500 font-medium ring-2 ring-green-200 px-2 rounded-md flex items-center"
+                                    >
+                                        {{ formatDateRange(date) }}
+                                        <button
+                                            type="button"
+                                            class="ml-2 text-white hover:text-gray-200 focus:outline-none"
+                                            @click="clearDateFilter"
+                                        >
+                                            <svg
+                                                class="h-4 w-4 text-green-300 hover:text-green-600"
                                                 fill="none"
                                                 viewBox="0 0 24 24"
                                                 stroke="currentColor"
@@ -368,7 +418,7 @@ const chartOptions = {
                                 </div>
                                 <div>
                                     <svg
-                                        @click="resetSelectedOption()"
+                                        @click="clearActiveFilter"
                                         class="h-4 w-4 cursor-pointer hover:text-gray-800"
                                         fill="none"
                                         viewBox="0 0 24 24"
@@ -385,8 +435,17 @@ const chartOptions = {
                             </div>
 
                             <div class="px-5">
+                                <div
+                                    v-if="isChartDataLoading"
+                                    class="flex justify-center items-center h-96"
+                                >
+                                    <div
+                                        class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"
+                                    ></div>
+                                </div>
                                 <ChartHistoryP2H
-                                    :chartOptions="chartOptions"
+                                    v-else
+                                    :chartOptions="computedChartOptions"
                                     :series="series"
                                 ></ChartHistoryP2H>
                             </div>

@@ -7,6 +7,7 @@ use App\Models\ListPertanyaan;
 use App\Models\Pengguna;
 use Inertia\Inertia;
 use Inertia\Response;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class HistoryPelaporanP2HController extends Controller
@@ -88,6 +89,129 @@ class HistoryPelaporanP2HController extends Controller
         return response()->json($query);
     }
 
+
+    public function fetchChartHistoryP2H(Request $request)
+    {
+        $isOption = $request->has('option');
+        $startDate = $request->query('startDate');
+        $endDate = $request->query('endDate');
+
+        // Parse and format the start date
+        $formattedStartDate = $startDate ? Carbon::parse($startDate)->format('Y-m-d') : null;
+
+
+
+        // Parse and format the end date
+        $formattedEndDate = $endDate ? Carbon::parse($endDate)->format('Y-m-d') : null;
+
+        $query = '';
+        $xAxis = [];
+        $yAxis = [];
+        $groupOfXaxis = [];
+        if ($isOption) {
+            $selectOption = $request->query('option');
+            switch ($selectOption) {
+                case 'week':
+
+                    $startOfWeek = Carbon::now()->startOfWeek();
+                    $endOfWeek = Carbon::now()->endOfWeek()->addDay();
+
+                    $query = LaporanP2H::whereBetween('tanggal_upload', [
+                        $startOfWeek->format('Y-m-d'),
+                        $endOfWeek->format('Y-m-d'),
+                    ]);
+
+                    for ($i = 0; $i < 7; $i++) {
+                        $xAxis[] = $startOfWeek->locale('id')->isoFormat('D MMM');
+                        $groupOfXaxis[] = $startOfWeek->format('Y-m-d');
+                        $startOfWeek->addDay();
+                    }
+                    break;
+                case 'month':
+
+                    $startOfMonth = Carbon::now()->startOfMonth();
+                    $endOfMonth = Carbon::now()->endOfMonth();
+
+                    $query = LaporanP2H::whereMonth('tanggal_upload', Carbon::now()->month)
+                        ->whereYear('tanggal_upload', Carbon::now()->year);
+
+                    while ($startOfMonth->lte($endOfMonth)) {
+                        $xAxis[] = $startOfMonth->locale('id')->isoFormat('D MMM');
+                        $groupOfXaxis[] = $startOfMonth->format('Y-m-d');
+                        $startOfMonth->addDay();
+                    }
+                    break;
+                case 'year':
+                    // Filter data for the current year
+
+                    for ($month = 1; $month <= 12; $month++) {
+                        $date = Carbon::create()->month($month);
+                        $groupOfXaxis[] = $date->format('m');
+                        $xAxis[] = $date->locale('id')->isoFormat('MMM'); // 'F' for full month name
+                    }
+
+                    $query = LaporanP2H::whereYear('tanggal_upload', Carbon::now()->year);
+                    break;
+            }
+        } else {
+            // If no option is provided, apply the date range filter
+            $startDate = $request->query('startDate');
+            $endDate = $request->query('endDate');
+
+            if ($startDate && $endDate) {
+                $formattedStartDate = Carbon::parse($startDate)->format('Y-m-d');
+                $formattedEndDate = Carbon::parse($endDate)->addDay()->format('Y-m-d');
+
+                $query = LaporanP2H::whereBetween('tanggal_upload', [
+                    $formattedStartDate,
+                    $formattedEndDate,
+                ]);
+            } else {
+                $query = LaporanP2H::get();
+            }
+        }
+
+
+        $groupedData = $query->get();
+        if ($selectOption === 'year') {
+            $groupedDataExist = $groupedData->groupBy(function ($item) {
+                return Carbon::parse($item->tanggal_upload)->format('m'); // Group by month
+            })->map(function ($group) {
+                return $group->count();
+            });
+        } else {
+            $groupedDataExist = $groupedData->groupBy(function ($item) {
+                return Carbon::parse($item->tanggal_upload)->format('Y-m-d');
+            })->map(function ($group) {
+                return $group->count();
+            });
+        }
+
+        $groupedDataExist = $groupedDataExist->toArray();
+
+        foreach ($groupOfXaxis as $key => $value) {
+
+            if (array_key_exists($value, $groupedDataExist)) {
+                $yAxis[] = $groupedDataExist[$value];
+            } else {
+                $yAxis[] = 0;
+            }
+        }
+
+
+
+
+
+        return response()->json([
+            'series' => [
+                [
+                    'name' => 'Laporan P2H',
+                    'data' => $yAxis,
+                ],
+            ],
+            'xAxis' => $xAxis,
+        ]);
+    }
     public function changeStatusFuKerusakan(Request $request)
     {
         $requestData = $request->all();

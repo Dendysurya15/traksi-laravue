@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/get-detail-laporan-p2h/{id}', [HistoryPelaporanP2HController::class, 'getDetailLaporanP2h'])->name('get-detail-laporan-p2h');
     Route::post('/change-status-fu-kerusakan', [HistoryPelaporanP2HController::class, 'changeStatusFuKerusakan'])->name('change-status-fu-kerusakan');
+    Route::get('/fetch-chart-history-p2h', [HistoryPelaporanP2HController::class, 'fetchChartHistoryP2H'])->name('fetch-chart-history-p2h');
 });
 
 require __DIR__ . '/auth.php';

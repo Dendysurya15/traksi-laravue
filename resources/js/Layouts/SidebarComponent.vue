@@ -54,13 +54,9 @@ export default defineComponent({
         <!-- Header -->
         <div class="flex items-center text-white justify-center p-2 mb-10 mt-3">
             <div
-                class="h-11 w-12 rounded bg-white flex items-center justify-center"
+                class="h-12 w-12 rounded bg-white flex items-center justify-center"
             >
-                <img
-                    src="/loginImage/traksi_logo.png"
-                    alt="Logo"
-                    class="h-10"
-                />
+                <img src="/loginImage/Group 6.png" alt="Logo" class="h-10" />
             </div>
 
             <div class="flex-col ml-2">

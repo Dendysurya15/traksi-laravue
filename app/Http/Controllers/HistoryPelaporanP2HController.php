@@ -92,14 +92,13 @@ class HistoryPelaporanP2HController extends Controller
 
     public function fetchChartHistoryP2H(Request $request)
     {
-        $isOption = $request->has('option');
+        $isOption = $request->has('date');
+
         $startDate = $request->query('startDate');
         $endDate = $request->query('endDate');
 
         // Parse and format the start date
         $formattedStartDate = $startDate ? Carbon::parse($startDate)->format('Y-m-d') : null;
-
-
 
         // Parse and format the end date
         $formattedEndDate = $endDate ? Carbon::parse($endDate)->format('Y-m-d') : null;
@@ -109,7 +108,7 @@ class HistoryPelaporanP2HController extends Controller
         $yAxis = [];
         $groupOfXaxis = [];
         if ($isOption) {
-            $selectOption = $request->query('option');
+            $selectOption = $request->query('date');
             switch ($selectOption) {
                 case 'week':
 
@@ -170,6 +169,13 @@ class HistoryPelaporanP2HController extends Controller
                 $query = LaporanP2H::get();
             }
         }
+
+
+        //if jenis_unit filtered
+        $query = $query->when($request->has('jenis_unit'), function ($query) use ($request) {
+            $jenisUnit = strtolower($request->input('jenis_unit'));
+            return $query->whereRaw('LOWER(jenis_unit) LIKE ?', ["%{$jenisUnit}%"]);
+        });
 
 
         $groupedData = $query->get();

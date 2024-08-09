@@ -1,7 +1,7 @@
 <template>
     <div class="relative">
         <div
-            class="w-[180px] border border-gray-300 rounded-md px-3 py-1.5 cursor-pointer flex items-center justify-between"
+            class="border border-gray-300 rounded-md px-3 py-1.5 cursor-pointer flex items-center justify-between"
             @click="toggleOptions"
         >
             <span v-if="selectedOption" class="text-gray-800">{{
@@ -9,7 +9,7 @@
             }}</span>
             <span v-else class="text-gray-400 flex items-center">
                 <CalendarIcon class="mr-2 h-4 w-4 opacity-70" />
-                Filter Chart
+                {{ placeholder }}
             </span>
             <svg
                 class="w-4 h-4 ml-2 inline-block transition-transform"
@@ -53,14 +53,27 @@ export default defineComponent({
     components: {
         CalendarIcon,
     },
+    props: {
+        // Define your props here
+        defaultSelect: {
+            type: String, // Specify the type of the prop
+            required: true, // Make it required or not
+        },
+        placeholder: {
+            type: String, // Specify the type of the prop
+            required: true, // Make it required or not
+        },
+        options: {
+            type: Array,
+            required: true,
+        },
+    },
     setup(props, { emit }) {
+        console.log(props.options);
         const selectedOption = ref(null);
         const showOptions = ref(false);
-        const options = [
-            { value: "week", label: "Per Minggu" },
-            { value: "month", label: "Per Bulan" },
-            { value: "year", label: "Per Tahun" },
-        ];
+        const placeholder = props.placeholder;
+        const options = props.options;
         const resetSelectedOption = () => {
             selectedOption.value = null;
         };
@@ -84,6 +97,7 @@ export default defineComponent({
             toggleOptions,
             selectOption,
             resetSelectedOption,
+            placeholder,
         };
     },
 });

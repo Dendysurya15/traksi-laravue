@@ -20,12 +20,38 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { ArrowPathIcon, SignalSlashIcon } from "@heroicons/vue/24/solid";
 import ChartHistoryP2H from "@/Components/ChartHistoryP2H.vue";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/Components/ui/accordion";
 
+const defaultValue = "item-1";
+
+const accordionItems = [
+    {
+        value: "item-2",
+        title: "*Catatan",
+        content:
+            "Yes. It's unstyled by default, giving you freedom over the look and feel.",
+    },
+];
 const activeFilterType = ref(null);
 const date = ref();
 const formatVueDatePicker = (date) => {
     return "";
 };
+const optionsDefault = [
+    { value: "week", label: "Per Minggu" },
+    { value: "month", label: "Per Bulan" },
+    { value: "year", label: "Per Tahun" },
+];
+const optionsJenisUnit = [
+    { value: "Excavator (HE)", label: "Excavator" },
+    { value: "Becho Loader (BL)", label: "Becho Loader" },
+    { value: "DT", label: "Dump Truck" },
+];
 const props = defineProps<{ data: LaporanP2H[] }>();
 const data = ref<LaporanP2H[]>(props.data);
 const live_tanggal = useDateFormat(useNow(), "dddd, D MMM YYYY  HH:mm:ss", {
@@ -43,8 +69,8 @@ const pagination = ref<PaginationMeta>({
 });
 
 const handleDateRangeSelection = (selectedRange) => {
-    if (filterSelectOptionRef.value) {
-        filterSelectOptionRef.value.resetSelectedOption();
+    if (filterSelectOptionDateRef.value) {
+        filterSelectOptionDateRef.value.resetSelectedOption();
     }
     if (selectedRange === null) {
         clearDateFilter();
@@ -60,24 +86,66 @@ const handleDateRangeSelection = (selectedRange) => {
 };
 
 const clearDateFilter = () => {
-    if (filterSelectOptionRef.value) {
-        filterSelectOptionRef.value.resetSelectedOption();
+    if (filterSelectOptionDateRef.value) {
+        filterSelectOptionDateRef.value.resetSelectedOption();
     }
     date.value = null;
     activeFilterType.value = null;
 };
 
-const clearActiveFilter = () => {
-    activeFilter.value = null;
+const clearActiveFilter = (filter) => {
+    if (activeFilterType.value === "option") {
+        // Remove the filter from the activeFilter array
+        activeFilter.value = activeFilter.value.filter(
+            (item) => item !== filter
+        );
 
-    date.value = null;
-    activeFilterType.value = null;
+        // If the activeFilter array is empty, reset the activeFilterType and reset the first component select options
+        if (activeFilter.value.length === 0) {
+            activeFilterType.value = null;
+            if (filterSelectOptionDateRef.value) {
+                filterSelectOptionDateRef.value.resetSelectedOption();
+            }
+        }
 
-    if (filterSelectOptionRef.value) {
-        filterSelectOptionRef.value.resetSelectedOption();
+        // Reset the selectOptionFilterArr
+        selectOptionFilterArr.value = [];
+
+        // Reset the filter select options
+        if (filterSelectOptionJenisUnitRef.value) {
+            filterSelectOptionJenisUnitRef.value.resetSelectedOption();
+        }
+    } else if (activeFilterType.value === "date") {
+        // Clear the date filter
+        activeFilter.value = null;
+        activeFilterType.value = null;
+        date.value = null;
+
+        if (filterSelectOptionDateRef.value) {
+            filterSelectOptionDateRef.value.resetSelectedOption();
+        }
     }
 };
-const filterSelectOptionRef = ref(null);
+const clearAllFilters = () => {
+    // Clear all active filters and reset states
+    activeFilter.value = [];
+    activeFilterType.value = null;
+    date.value = null;
+
+    // Reset filter select options
+    if (filterSelectOptionDateRef.value) {
+        filterSelectOptionDateRef.value.resetSelectedOption();
+    }
+
+    if (filterSelectOptionJenisUnitRef.value) {
+        filterSelectOptionJenisUnitRef.value.resetSelectedOption();
+    }
+
+    // Reset selectOptionFilterArr
+    selectOptionFilterArr.value = [];
+};
+const filterSelectOptionDateRef = ref(null);
+const filterSelectOptionJenisUnitRef = ref(null);
 const activeFilter = ref(null);
 const isFetchingData = ref(true);
 const errorFetching = ref<string | null>(null);
@@ -100,6 +168,8 @@ const updatedSeries = ref([]);
 const updatedXAxisCategories = ref([]);
 const isChartDataLoading = ref(false);
 
+const selectOptionFilterArr = ref([]);
+
 async function fetchChartData() {
     try {
         isChartDataLoading.value = true; // Set loading state to true
@@ -108,8 +178,10 @@ async function fetchChartData() {
 
         // Check if there's an active filter
         if (activeFilterType.value === "option") {
-            // Include the selected option as a parameter
-            params.option = activeFilter.value;
+            // Include the selected options as parameters
+            selectOptionFilterArr.value.forEach((filter) => {
+                params[filter.type] = filter.value;
+            });
         } else if (activeFilterType.value === "date") {
             // Include the selected date range as parameters
             const [startDate, endDate] = date.value;
@@ -143,23 +215,11 @@ async function fetchChartData() {
     }
 }
 
-const computedChartOptions = computed(() => ({
-    ...chartOptions,
-    xaxis: {
-        ...chartOptions.xaxis,
-        categories: updatedXAxisCategories.value,
-    },
-}));
-
 const series = ref(updatedSeries.value);
 
-watch([updatedSeries, updatedXAxisCategories], ([newSeries, newCategories]) => {
-    if (
-        newSeries !== series.value ||
-        newCategories !== computedChartOptions.value.xaxis.categories
-    ) {
+watch([updatedSeries, updatedXAxisCategories], ([newSeries]) => {
+    if (newSeries !== series.value) {
         series.value = newSeries;
-        computedChartOptions.value.xaxis.categories = newCategories;
     }
 });
 
@@ -214,13 +274,40 @@ async function getData(page = 1, paginate = 10): Promise<void> {
     }
 }
 
-function selectOption(value) {
-    activeFilter.value = value;
-    activeFilterType.value = "option"; // Set the active filter type to 'option'
-    date.value = null; // Reset the date variable
+// function selectOption(value) {
+//     activeFilter.value = value;
+//     activeFilterType.value = "option"; // Set the active filter type to 'option'
+//     date.value = null; // Reset the date variable
+
+//     fetchChartData();
+// }
+const selectOption = (option, filterType) => {
+    // Find the index of the existing filterType in the array
+    const existingFilterIndex = selectOptionFilterArr.value.findIndex(
+        (item) => item.type === filterType
+    );
+
+    if (existingFilterIndex !== -1) {
+        // If the filterType exists, update its value
+        selectOptionFilterArr.value[existingFilterIndex].value = option;
+    } else {
+        // If the filterType does not exist, add a new entry
+        selectOptionFilterArr.value.push({ value: option, type: filterType });
+    }
+
+    // Update the activeFilterType and activeFilter based on the selected options
+    if (selectOptionFilterArr.value.length > 0) {
+        activeFilterType.value = "option";
+        activeFilter.value = selectOptionFilterArr.value.map(
+            (item) => item.value
+        );
+    } else {
+        activeFilterType.value = null;
+        activeFilter.value = [];
+    }
 
     fetchChartData();
-}
+};
 
 onMounted(async () => {
     await getData();
@@ -249,54 +336,6 @@ function checkBackToTable() {
 function refreshData() {
     getData(pagination.value.current_page, pagination.value.per_page);
 }
-
-// const series = [
-//     {
-//         name: "Laporan P2H",
-//         data: [31, 40, 28, 51, 42, 109, 100],
-//     },
-// ];
-
-const chartOptions = {
-    chart: {
-        height: 350,
-        type: "bar",
-        zoom: {
-            enabled: false,
-        },
-    },
-    plotOptions: {
-        bar: {
-            horizontal: false,
-            columnWidth: "55%",
-            endingShape: "rounded",
-            fill: {
-                colors: ["#6366f1"], // Change this to your desired color
-            },
-        },
-    },
-    dataLabels: {
-        enabled: false,
-    },
-    stroke: {
-        show: true,
-        width: 2,
-        colors: ["transparent"],
-    },
-    // title: {
-    //     text: "Grafik Laporan P2H",
-    //     align: "left",
-    // },
-    grid: {
-        row: {
-            colors: ["#f3f3f3"], // takes an array which will be repeated on columns
-            opacity: 0.5,
-        },
-    },
-    xaxis: {
-        categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"],
-    },
-};
 </script>
 <style>
 .dp__theme_light {
@@ -329,8 +368,23 @@ const chartOptions = {
                                 class="flex px-5 gap-2 mb-3 justify-start mt-3 items-center"
                             >
                                 <FilterSelectOptionHistoryP2H
-                                    @option-selected="selectOption"
-                                    ref="filterSelectOptionRef"
+                                    @option-selected="
+                                        selectOption($event, 'date')
+                                    "
+                                    defaultSelect="week"
+                                    :options="optionsDefault"
+                                    placeholder="Filter Chart"
+                                    ref="filterSelectOptionDateRef"
+                                />
+
+                                <FilterSelectOptionHistoryP2H
+                                    @option-selected="
+                                        selectOption($event, 'jenis_unit')
+                                    "
+                                    defaultSelect="week"
+                                    :options="optionsJenisUnit"
+                                    placeholder="Filter Jenis Unit"
+                                    ref="filterSelectOptionJenisUnitRef"
                                 />
 
                                 <div>
@@ -365,15 +419,18 @@ const chartOptions = {
                                     <span class="text-gray-800 mr-2"
                                         >Filter Aktif:</span
                                     >
+
                                     <span
                                         v-if="activeFilterType === 'option'"
-                                        class="bg-green-100 text-green-500 font-medium ring-2 ring-green-200 px-2 rounded-md flex items-center"
+                                        v-for="filter in activeFilter"
+                                        :key="filter"
+                                        class="bg-green-100 text-green-500 font-medium ring-2 ring-green-200 px-2 rounded-md flex items-center mr-2"
                                     >
-                                        {{ activeFilter }}
+                                        {{ filter }}
                                         <button
                                             type="button"
                                             class="ml-2 text-white hover:text-gray-200 focus:outline-none"
-                                            @click="clearActiveFilter"
+                                            @click="clearActiveFilter(filter)"
                                         >
                                             <svg
                                                 class="h-4 w-4 text-green-300 hover:text-green-600"
@@ -390,6 +447,7 @@ const chartOptions = {
                                             </svg>
                                         </button>
                                     </span>
+
                                     <span
                                         v-else-if="activeFilterType === 'date'"
                                         class="bg-green-100 text-green-500 font-medium ring-2 ring-green-200 px-2 rounded-md flex items-center"
@@ -418,7 +476,7 @@ const chartOptions = {
                                 </div>
                                 <div>
                                     <svg
-                                        @click="clearActiveFilter"
+                                        @click="clearAllFilters"
                                         class="h-4 w-4 cursor-pointer hover:text-gray-800"
                                         fill="none"
                                         viewBox="0 0 24 24"
@@ -435,6 +493,27 @@ const chartOptions = {
                             </div>
 
                             <div class="px-5">
+                                <Accordion
+                                    type="single"
+                                    class="w-full"
+                                    collapsible
+                                    :default-value="defaultValue"
+                                >
+                                    <AccordionItem
+                                        v-for="item in accordionItems"
+                                        :key="item.value"
+                                        :value="item.value"
+                                    >
+                                        <AccordionTrigger>{{
+                                            item.title
+                                        }}</AccordionTrigger>
+                                        <AccordionContent>
+                                            {{ item.content }}
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                </Accordion>
+                            </div>
+                            <div class="px-5">
                                 <div
                                     v-if="isChartDataLoading"
                                     class="flex justify-center items-center h-96"
@@ -445,16 +524,17 @@ const chartOptions = {
                                 </div>
                                 <ChartHistoryP2H
                                     v-else
-                                    :chartOptions="computedChartOptions"
-                                    :series="series"
+                                    :series="updatedSeries"
+                                    :xAxisCategories="updatedXAxisCategories"
                                 ></ChartHistoryP2H>
                             </div>
                         </div>
                         <div
                             class="px-5 pt-3 font-semibold text-xl justify-start items-center flex"
                         >
-                            History Laporan P2H - {{ live_tanggal }}
-                            <div class="cursor-pointer ml-3 text-sm">
+                            History Laporan P2H
+                            <!-- - {{ live_tanggal }} -->
+                            <!-- <div class="cursor-pointer ml-3 text-sm">
                                 <Badge
                                     class="bg-gray-200 text-black gap-2 hover:bg-gray-300"
                                     @click="refreshData"
@@ -464,7 +544,7 @@ const chartOptions = {
                                         class="w-5 h-5 text-green-600"
                                     />
                                 </Badge>
-                            </div>
+                            </div> -->
                         </div>
                         <div v-if="isFetchingData" class="p-4">
                             <div class="space-y-2">

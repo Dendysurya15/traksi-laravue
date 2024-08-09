@@ -238,10 +238,8 @@ export const columns: ColumnDef<LaporanP2H>[] = [
         cell: ({ row }) => {
             const data = row.original;
 
-            console.log(row.original);
             const kerusakanUnitPart = row.getValue("kerusakan_unit_part");
 
-            console.log("kerusakanUnitPart", kerusakanUnitPart);
             return kerusakanUnitPart
                 ? h(
                       "div",

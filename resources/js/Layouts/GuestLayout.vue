@@ -39,7 +39,7 @@ defineProps({
                         class="h-16 w-16 bg-white rounded-full flex items-center justify-center"
                     >
                         <img
-                            src="/loginImage/traksi_logo.png"
+                            src="/loginImage/Group 6.png"
                             alt="Logo"
                             class="h-12"
                         />

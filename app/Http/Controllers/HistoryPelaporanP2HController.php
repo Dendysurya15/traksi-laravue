@@ -92,109 +92,117 @@ class HistoryPelaporanP2HController extends Controller
 
     public function fetchChartHistoryP2H(Request $request)
     {
-        $isOption = $request->has('date');
 
-        $startDate = $request->query('startDate');
-        $endDate = $request->query('endDate');
+        $query = LaporanP2H::query();
 
-        // Parse and format the start date
-        $formattedStartDate = $startDate ? Carbon::parse($startDate)->format('Y-m-d') : null;
+        $now = Carbon::now();
 
-        // Parse and format the end date
-        $formattedEndDate = $endDate ? Carbon::parse($endDate)->format('Y-m-d') : null;
+        $startOfWeek = Carbon::now()->startOfWeek();
+        $endOfWeek = Carbon::now()->endOfWeek()->addDay();
 
-        $query = '';
-        $xAxis = [];
-        $yAxis = [];
-        $groupOfXaxis = [];
-        if ($isOption) {
-            $selectOption = $request->query('date');
+
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $endOfMonth = Carbon::now()->endOfMonth();
+
+        // Apply date filter based on selected option
+        $query->when($request->has('timeline'), function ($query) use ($request, $startOfWeek, $now, $startOfMonth, $endOfWeek, $endOfMonth) {
+            $selectOption = $request->query('timeline');
             switch ($selectOption) {
-                case 'week':
-
-                    $startOfWeek = Carbon::now()->startOfWeek();
-                    $endOfWeek = Carbon::now()->endOfWeek()->addDay();
-
-                    $query = LaporanP2H::whereBetween('tanggal_upload', [
-                        $startOfWeek->format('Y-m-d'),
-                        $endOfWeek->format('Y-m-d'),
+                case 'Minggu':
+                    $query->whereBetween('tanggal_upload', [
+                        $startOfWeek->format('Y-m-d H:i:s'),
+                        $endOfWeek->format('Y-m-d H:i:s'),
                     ]);
 
-                    for ($i = 0; $i < 7; $i++) {
-                        $xAxis[] = $startOfWeek->locale('id')->isoFormat('D MMM');
-                        $groupOfXaxis[] = $startOfWeek->format('Y-m-d');
-                        $startOfWeek->addDay();
-                    }
                     break;
-                case 'month':
-
-                    $startOfMonth = Carbon::now()->startOfMonth();
-                    $endOfMonth = Carbon::now()->endOfMonth();
-
-                    $query = LaporanP2H::whereMonth('tanggal_upload', Carbon::now()->month)
-                        ->whereYear('tanggal_upload', Carbon::now()->year);
-
-                    while ($startOfMonth->lte($endOfMonth)) {
-                        $xAxis[] = $startOfMonth->locale('id')->isoFormat('D MMM');
-                        $groupOfXaxis[] = $startOfMonth->format('Y-m-d');
-                        $startOfMonth->addDay();
-                    }
+                case 'Bulan':
+                    $query->whereMonth('tanggal_upload', $now->month)
+                        ->whereYear('tanggal_upload', $now->year);
                     break;
-                case 'year':
-                    // Filter data for the current year
-
-                    for ($month = 1; $month <= 12; $month++) {
-                        $date = Carbon::create()->month($month);
-                        $groupOfXaxis[] = $date->format('m');
-                        $xAxis[] = $date->locale('id')->isoFormat('MMM'); // 'F' for full month name
-                    }
-
-                    $query = LaporanP2H::whereYear('tanggal_upload', Carbon::now()->year);
+                case 'Tahun':
+                    $query->whereYear('tanggal_upload', $now->year);
                     break;
             }
-        } else {
-            // If no option is provided, apply the date range filter
-            $startDate = $request->query('startDate');
-            $endDate = $request->query('endDate');
-
-            if ($startDate && $endDate) {
-                $formattedStartDate = Carbon::parse($startDate)->format('Y-m-d');
-                $formattedEndDate = Carbon::parse($endDate)->addDay()->format('Y-m-d');
-
-                $query = LaporanP2H::whereBetween('tanggal_upload', [
-                    $formattedStartDate,
-                    $formattedEndDate,
-                ]);
-            } else {
-                $query = LaporanP2H::get();
-            }
-        }
-
-
-        //if jenis_unit filtered
-        $query = $query->when($request->has('jenis_unit'), function ($query) use ($request) {
-            $jenisUnit = strtolower($request->input('jenis_unit'));
-            return $query->whereRaw('LOWER(jenis_unit) LIKE ?', ["%{$jenisUnit}%"]);
         });
 
 
+        $query->when($request->has('startDate') && $request->has('endDate'), function ($query) use ($request) {
+            $startDate = Carbon::parse($request->query('startDate'))->format('Y-m-d H:i:s');
+            $endDate = Carbon::parse($request->query('endDate'))->addDay()->format('Y-m-d H:i:s');
+            $query->whereBetween('tanggal_upload', [$startDate, $endDate]);
+        });
+
+        // Apply jenis_unit filter
+        $query->when($request->has('jenis_unit'), function ($query) use ($request) {
+            $jenisUnit = strtolower($request->input('jenis_unit'));
+            $query->whereRaw('LOWER(jenis_unit) LIKE ?', ["%{$jenisUnit}%"]);
+        });
+
+        // Fetch grouped data
         $groupedData = $query->get();
-        if ($selectOption === 'year') {
-            $groupedDataExist = $groupedData->groupBy(function ($item) {
-                return Carbon::parse($item->tanggal_upload)->format('m'); // Group by month
-            })->map(function ($group) {
-                return $group->count();
-            });
-        } else {
+
+        $groupOfXaxis = [];
+        $xAxis = [];
+        $yAxis = [];
+
+        if ($request->has('timeline')) {
+            if ($request->query('timeline') === 'Tahun') {
+                $groupedDataExist = $groupedData->groupBy(function ($item) {
+                    return Carbon::parse($item->tanggal_upload)->format('m'); // Group by month
+                })->map(function ($group) {
+                    return $group->count();
+                });
+
+                for ($month = 1; $month <= 12; $month++) {
+                    $date = Carbon::create()->month($month);
+                    $groupOfXaxis[] = $date->format('m');
+                    $xAxis[] = $date->locale('id')->isoFormat('MMM');
+                }
+            } else if ($request->query('timeline') === 'Minggu') {
+                $groupedDataExist = $groupedData->groupBy(function ($item) {
+                    return Carbon::parse($item->tanggal_upload)->format('Y-m-d');
+                })->map(function ($group) {
+                    return $group->count();
+                });
+                for ($i = 0; $i < 7; $i++) {
+                    $xAxis[] = $startOfWeek->locale('id')->isoFormat('D MMM');
+                    $groupOfXaxis[] = $startOfWeek->format('Y-m-d');
+                    $startOfWeek->addDay();
+                }
+            } else if ($request->query('timeline') === 'Bulan') {
+                $groupedDataExist = $groupedData->groupBy(function ($item) {
+                    return Carbon::parse($item->tanggal_upload)->format('Y-m-d');
+                })->map(function ($group) {
+                    return $group->count();
+                });
+                while ($startOfMonth->lte($endOfMonth)) {
+                    $xAxis[] = $startOfMonth->locale('id')->isoFormat('D MMM');
+                    $groupOfXaxis[] = $startOfMonth->format('Y-m-d');
+                    $startOfMonth->addDay();
+                }
+            }
+        }
+
+        if ($request->has('startDate') && $request->has('endDate')) {
+            $startDate = Carbon::parse($request->query('startDate'))->startOfDay();
+            $endDate = Carbon::parse($request->query('endDate'))->endOfDay();
+
             $groupedDataExist = $groupedData->groupBy(function ($item) {
                 return Carbon::parse($item->tanggal_upload)->format('Y-m-d');
             })->map(function ($group) {
                 return $group->count();
             });
+
+            while ($startDate->lte($endDate)) {
+                $xAxis[] = $startDate->locale('id')->isoFormat('D MMM');
+                $groupOfXaxis[] = $startDate->format('Y-m-d');
+                $startDate->addDay();
+            }
         }
 
         $groupedDataExist = $groupedDataExist->toArray();
 
+        // dd($groupOfXaxis, $groupedDataExist);
         foreach ($groupOfXaxis as $key => $value) {
 
             if (array_key_exists($value, $groupedDataExist)) {
@@ -203,9 +211,6 @@ class HistoryPelaporanP2HController extends Controller
                 $yAxis[] = 0;
             }
         }
-
-
-
 
 
         return response()->json([

@@ -43,15 +43,17 @@ const formatVueDatePicker = (date) => {
     return "";
 };
 const optionsDefault = [
-    { value: "week", label: "Per Minggu" },
-    { value: "month", label: "Per Bulan" },
-    { value: "year", label: "Per Tahun" },
+    { value: "Minggu", label: "Per Minggu" },
+    { value: "Bulan", label: "Per Bulan" },
+    { value: "Tahun", label: "Per Tahun" },
 ];
 const optionsJenisUnit = [
     { value: "Excavator (HE)", label: "Excavator" },
     { value: "Becho Loader (BL)", label: "Becho Loader" },
     { value: "DT", label: "Dump Truck" },
+    { value: "Hino", label: "Hino DT Truck" },
 ];
+const optionsTahun = [{ value: "2024", label: "2024" }];
 const props = defineProps<{ data: LaporanP2H[] }>();
 const data = ref<LaporanP2H[]>(props.data);
 const live_tanggal = useDateFormat(useNow(), "dddd, D MMM YYYY  HH:mm:ss", {
@@ -69,26 +71,32 @@ const pagination = ref<PaginationMeta>({
 });
 
 const handleDateRangeSelection = (selectedRange) => {
-    if (filterSelectOptionDateRef.value) {
-        filterSelectOptionDateRef.value.resetSelectedOption();
-    }
     if (selectedRange === null) {
         clearDateFilter();
         return;
     }
-    // console.log("Selected Date Range:", selectedRange);
-    date.value = selectedRange; // Update the date variable with the selected range
+
+    // Update the date variable with the selected range
+    date.value = selectedRange;
     activeFilterType.value = "date"; // Set the active filter type to 'date'
+
     // Reset the select option filter
-    activeFilter.value = null;
+    activeFilter.value = [];
+    selectOptionFilterArr.value = [];
+
+    // Reset all filter select components
+
+    filterSelectRefs.value.forEach((ref) => {
+        console.log("askdjflsk");
+        if (ref) {
+            ref.resetSelectedOption(); // Ensure the method exists in your component
+        }
+    });
 
     fetchChartData();
 };
 
 const clearDateFilter = () => {
-    if (filterSelectOptionDateRef.value) {
-        filterSelectOptionDateRef.value.resetSelectedOption();
-    }
     date.value = null;
     activeFilterType.value = null;
 };
@@ -99,53 +107,40 @@ const clearActiveFilter = (filter) => {
         activeFilter.value = activeFilter.value.filter(
             (item) => item !== filter
         );
+        selectOptionFilterArr.value = selectOptionFilterArr.value.filter(
+            (item) => item.value !== filter
+        );
 
-        // If the activeFilter array is empty, reset the activeFilterType and reset the first component select options
         if (activeFilter.value.length === 0) {
             activeFilterType.value = null;
-            if (filterSelectOptionDateRef.value) {
-                filterSelectOptionDateRef.value.resetSelectedOption();
-            }
-        }
-
-        // Reset the selectOptionFilterArr
-        selectOptionFilterArr.value = [];
-
-        // Reset the filter select options
-        if (filterSelectOptionJenisUnitRef.value) {
-            filterSelectOptionJenisUnitRef.value.resetSelectedOption();
+            filterSelectRefs.value.forEach((ref) => {
+                if (ref) {
+                    ref.resetSelectedOption();
+                }
+            });
         }
     } else if (activeFilterType.value === "date") {
         // Clear the date filter
-        activeFilter.value = null;
+        activeFilter.value = [];
         activeFilterType.value = null;
         date.value = null;
 
-        if (filterSelectOptionDateRef.value) {
-            filterSelectOptionDateRef.value.resetSelectedOption();
+        if (datePickerRef.value) {
+            datePickerRef.value.resetSelectedOption();
         }
     }
+
+    fetchChartData();
 };
 const clearAllFilters = () => {
     // Clear all active filters and reset states
     activeFilter.value = [];
     activeFilterType.value = null;
     date.value = null;
-
-    // Reset filter select options
-    if (filterSelectOptionDateRef.value) {
-        filterSelectOptionDateRef.value.resetSelectedOption();
-    }
-
-    if (filterSelectOptionJenisUnitRef.value) {
-        filterSelectOptionJenisUnitRef.value.resetSelectedOption();
-    }
-
     // Reset selectOptionFilterArr
     selectOptionFilterArr.value = [];
 };
-const filterSelectOptionDateRef = ref(null);
-const filterSelectOptionJenisUnitRef = ref(null);
+
 const activeFilter = ref(null);
 const isFetchingData = ref(true);
 const errorFetching = ref<string | null>(null);
@@ -167,7 +162,28 @@ const formatDateRange = (dateRange) => {
 const updatedSeries = ref([]);
 const updatedXAxisCategories = ref([]);
 const isChartDataLoading = ref(false);
+const filterComponents = [
+    {
+        type: "year_operation",
+        defaultSelect: "",
+        options: optionsTahun,
+        placeholder: "Tahun Beroperasi",
+    },
+    {
+        type: "timeline",
+        defaultSelect: "Minggu",
+        options: optionsDefault,
+        placeholder: "Filter Chart",
+    },
+    {
+        type: "jenis_unit",
+        defaultSelect: "",
+        options: optionsJenisUnit,
+        placeholder: "Filter Jenis Unit",
+    },
+];
 
+const filterSelectRefs = ref([]);
 const selectOptionFilterArr = ref([]);
 
 async function fetchChartData() {
@@ -274,13 +290,6 @@ async function getData(page = 1, paginate = 10): Promise<void> {
     }
 }
 
-// function selectOption(value) {
-//     activeFilter.value = value;
-//     activeFilterType.value = "option"; // Set the active filter type to 'option'
-//     date.value = null; // Reset the date variable
-
-//     fetchChartData();
-// }
 const selectOption = (option, filterType) => {
     // Find the index of the existing filterType in the array
     const existingFilterIndex = selectOptionFilterArr.value.findIndex(
@@ -367,7 +376,7 @@ function refreshData() {
                             <div
                                 class="flex px-5 gap-2 mb-3 justify-start mt-3 items-center"
                             >
-                                <FilterSelectOptionHistoryP2H
+                                <!-- <FilterSelectOptionHistoryP2H
                                     @option-selected="
                                         selectOption($event, 'date')
                                     "
@@ -385,8 +394,18 @@ function refreshData() {
                                     :options="optionsJenisUnit"
                                     placeholder="Filter Jenis Unit"
                                     ref="filterSelectOptionJenisUnitRef"
+                                /> -->
+                                <FilterSelectOptionHistoryP2H
+                                    v-for="(filter, index) in filterComponents"
+                                    :key="index"
+                                    @option-selected="
+                                        selectOption($event, filter.type)
+                                    "
+                                    :defaultSelect="filter.defaultSelect"
+                                    :options="filter.options"
+                                    :placeholder="filter.placeholder"
+                                    ref="filterSelectRefs[index]"
                                 />
-
                                 <div>
                                     <VueDatePicker
                                         v-model="date"

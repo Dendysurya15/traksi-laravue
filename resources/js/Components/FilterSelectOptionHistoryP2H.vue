@@ -69,7 +69,6 @@ export default defineComponent({
         },
     },
     setup(props, { emit }) {
-        console.log(props.options);
         const selectedOption = ref(null);
         const showOptions = ref(false);
         const placeholder = props.placeholder;

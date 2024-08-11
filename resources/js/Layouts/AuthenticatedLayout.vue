@@ -1,5 +1,5 @@
 <script>
-import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import SidebarComponent from "./SidebarComponent.vue";
 import { Link, usePage, router } from "@inertiajs/vue3";
 import { ChevronDownIcon, HomeIcon } from "@heroicons/vue/24/solid";
@@ -13,13 +13,16 @@ export default {
         ActionProfileNavbar,
     },
     props: {
-        activeLink: String,
+        activeLink: String, // Receive activeLink from SidebarComponent
         children: Array,
     },
     data() {
         return {
             activeLink: "Dashboard",
-            links: [{ name: "Dashboard", icon: "HomeIcon" }],
+            links: [
+                { name: "Dashboard", icon: "HomeIcon" },
+                // { name: "Profile", icon: "ChevronDownIcon" },
+            ],
         };
     },
     methods: {
@@ -31,8 +34,8 @@ export default {
         },
     },
     setup() {
-        const isSidebarOpen = ref(false); // Default to false
-        const isSmallScreen = ref(true); // Default to true
+        const isSidebarOpen = ref(false);
+        const isSmallScreen = ref(window.innerWidth < 1279);
         const page = usePage();
         const routeNow =
             page.url.replace("/", "").charAt(0).toUpperCase() +
@@ -48,19 +51,14 @@ export default {
             },
         ];
         const isMenuOpen = ref(false);
-        const isLoaded = ref(false);
 
         const updateIsSmallScreen = () => {
             isSmallScreen.value = window.innerWidth < 1279;
-            isSidebarOpen.value = !isSmallScreen.value;
         };
 
         onMounted(() => {
-            nextTick(() => {
-                updateIsSmallScreen();
-                window.addEventListener("resize", updateIsSmallScreen);
-                isLoaded.value = true;
-            });
+            window.addEventListener("resize", updateIsSmallScreen);
+            isSidebarOpen.value = window.innerWidth >= 1279;
         });
 
         onUnmounted(() => {
@@ -94,7 +92,6 @@ export default {
             isMenuOpen,
             toggleMenu,
             closeMenu,
-            isLoaded,
         };
     },
 };
@@ -105,22 +102,22 @@ export default {
 .fade-leave-active {
     transition: opacity 0.5s;
 }
-.fade-enter,
-.fade-leave-to {
+.fade-enter, .fade-leave-to /* .fade-leave-active in <2.1.8 */ {
     opacity: 0;
 }
 .svg-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 35px;
-    height: 35px;
-    background-color: #f0f0f0;
-    border-radius: 50%;
+    width: 35px; /* Adjust the size as needed */
+    height: 35px; /* Adjust the size as needed */
+    background-color: #f0f0f0; /* Background color */
+    border-radius: 50%; /* Makes the background round */
 }
+
 .svg-icon {
-    width: 23px;
-    height: 23px;
+    width: 23px; /* Adjust the size as needed */
+    height: 23px; /* Adjust the size as needed */
 }
 </style>
 
@@ -132,9 +129,16 @@ export default {
         >
             <!-- Sidebar -->
             <aside
-                v-show="isLoaded && !isSmallScreen"
-                class="col-span-1 border-r-2 border-gray-200 shadow-2xl"
+                :class="[
+                    'col-span-1 border-r-2 border-gray-200 shadow-2xl',
+                    { hidden: !isSidebarOpen },
+                    'md:hidden',
+                    'xs:hidden',
+                    'sm:hidden',
+                    'rs:hidden',
+                ]"
             >
+                <!-- Sidebar content -->
                 <div>
                     <SidebarComponent
                         :listLink="links"
@@ -157,6 +161,7 @@ export default {
                 ]"
                 :style="{ backgroundColor: '#eff0f3' }"
             >
+                <!-- navbar content -->
                 <div class="bg-white">
                     <div
                         class="w-full p-2 flex justify-between items-center border-b-2 border-gray-200 shadow-md shadow-gray-200"
@@ -205,11 +210,12 @@ export default {
 
             <!-- Sidebar for small screens -->
             <transition name="fade-leave-active">
-                <div v-show="isSidebarOpen && isSmallScreen">
+                <div v-if="isSidebarOpen && isSmallScreen">
                     <div
                         class="fixed inset-0 z-50 md:w-2/5 sm:w-2/5 xs:w-2/5 rs:w-3/5 h-full"
                         :style="{ backgroundColor: '#003151' }"
                     >
+                        <!-- Sidebar content -->
                         <SidebarComponent
                             :listLink="links"
                             :activeLink="activeLink"

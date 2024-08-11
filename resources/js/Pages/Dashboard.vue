@@ -47,15 +47,23 @@ const optionsDefault = [
     { value: "Bulan", label: "Per Bulan" },
     { value: "Tahun", label: "Per Tahun" },
 ];
-const optionsJenisUnit = [
-    { value: "Excavator (HE)", label: "Excavator" },
-    { value: "Becho Loader (BL)", label: "Becho Loader" },
-    { value: "DT", label: "Dump Truck" },
-    { value: "Hino", label: "Hino DT Truck" },
-];
+// const optionsJenisUnit = [
+//     { value: "Excavator (HE)", label: "Excavator" },
+//     { value: "Becho Loader (BL)", label: "Becho Loader" },
+//     { value: "DT", label: "Dump Truck" },
+//     { value: "Hino", label: "Hino DT Truck" },
+// ];
 const optionsTahun = [{ value: "2024", label: "2024" }];
-const props = defineProps<{ data: LaporanP2H[] }>();
+const props = defineProps<{ data: LaporanP2H[]; jenisUnit }>();
+const jenisUnit = ref(props.jenisUnit);
 const data = ref<LaporanP2H[]>(props.data);
+
+const optionsJenisUnit = jenisUnit.value.map((unit: any) => ({
+    value: unit, // Replace with the correct property name if different
+    label: unit, // Replace with the correct property name if different
+}));
+
+// console.log(jj);
 const live_tanggal = useDateFormat(useNow(), "dddd, D MMM YYYY  HH:mm:ss", {
     locales: "id-ID",
 });
@@ -87,7 +95,6 @@ const handleDateRangeSelection = (selectedRange) => {
     // Reset all filter select components
 
     filterSelectRefs.value.forEach((ref) => {
-        console.log("askdjflsk");
         if (ref) {
             ref.resetSelectedOption(); // Ensure the method exists in your component
         }
@@ -113,11 +120,14 @@ const clearActiveFilter = (filter) => {
 
         if (activeFilter.value.length === 0) {
             activeFilterType.value = null;
-            filterSelectRefs.value.forEach((ref) => {
-                if (ref) {
-                    ref.resetSelectedOption();
-                }
-            });
+        }
+
+        if (filter in test.value && child.value[test.value[filter]]) {
+            child.value[test.value[filter]].resetSelectedOption();
+        }
+
+        if (filter in test.value) {
+            delete test.value[filter];
         }
     } else if (activeFilterType.value === "date") {
         // Clear the date filter
@@ -132,6 +142,7 @@ const clearActiveFilter = (filter) => {
 
     fetchChartData();
 };
+
 const clearAllFilters = () => {
     // Clear all active filters and reset states
     activeFilter.value = [];
@@ -139,6 +150,11 @@ const clearAllFilters = () => {
     date.value = null;
     // Reset selectOptionFilterArr
     selectOptionFilterArr.value = [];
+    isResetAllOptionFilter.value = true;
+
+    child.value.forEach((ref) => {
+        ref.resetSelectedOption(); // Ensure the method exists in your component
+    });
 };
 
 const activeFilter = ref(null);
@@ -159,6 +175,15 @@ const formatDateRange = (dateRange) => {
 
     return `${formattedStartDate} - ${formattedEndDate}`;
 };
+const child = ref(null);
+const test = ref([]);
+const testChild = (index) => {
+    // child.value.forEach((ref) => {
+    //     ref.resetSelectedOption(); // Ensure the method exists in your component
+    // });
+    // child.value[test.value[index]].resetSelectedOption();
+};
+
 const updatedSeries = ref([]);
 const updatedXAxisCategories = ref([]);
 const isChartDataLoading = ref(false);
@@ -186,6 +211,7 @@ const filterComponents = [
 const filterSelectRefs = ref([]);
 const selectOptionFilterArr = ref([]);
 
+const isResetAllOptionFilter = ref(false);
 async function fetchChartData() {
     try {
         isChartDataLoading.value = true; // Set loading state to true
@@ -290,7 +316,7 @@ async function getData(page = 1, paginate = 10): Promise<void> {
     }
 }
 
-const selectOption = (option, filterType) => {
+const selectOption = (index, option, filterType) => {
     // Find the index of the existing filterType in the array
     const existingFilterIndex = selectOptionFilterArr.value.findIndex(
         (item) => item.type === filterType
@@ -310,6 +336,9 @@ const selectOption = (option, filterType) => {
         activeFilter.value = selectOptionFilterArr.value.map(
             (item) => item.value
         );
+
+        test.value[option] = index;
+        console.log(test.value);
     } else {
         activeFilterType.value = null;
         activeFilter.value = [];
@@ -399,12 +428,13 @@ function refreshData() {
                                     v-for="(filter, index) in filterComponents"
                                     :key="index"
                                     @option-selected="
-                                        selectOption($event, filter.type)
+                                        selectOption(index, $event, filter.type)
                                     "
                                     :defaultSelect="filter.defaultSelect"
                                     :options="filter.options"
                                     :placeholder="filter.placeholder"
-                                    ref="filterSelectRefs[index]"
+                                    ref="child"
+                                    :resetAll="isResetAllOptionFilter"
                                 />
                                 <div>
                                     <VueDatePicker
@@ -441,7 +471,7 @@ function refreshData() {
 
                                     <span
                                         v-if="activeFilterType === 'option'"
-                                        v-for="filter in activeFilter"
+                                        v-for="(filter, index) in activeFilter"
                                         :key="filter"
                                         class="bg-green-100 text-green-500 font-medium ring-2 ring-green-200 px-2 rounded-md flex items-center mr-2"
                                     >

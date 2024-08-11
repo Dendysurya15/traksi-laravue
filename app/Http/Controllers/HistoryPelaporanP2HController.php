@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\JenisUnit;
 use App\Models\LaporanP2H;
 use App\Models\ListPertanyaan;
 use App\Models\Pengguna;
@@ -9,6 +10,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class HistoryPelaporanP2HController extends Controller
 {
@@ -43,8 +45,14 @@ class HistoryPelaporanP2HController extends Controller
                 $laporan->kerusakan_unit_part = '';
             }
         }
+
+        // Assuming you are working with the JenisUnit model
+        $queryJenisUnit = JenisUnit::select(DB::raw("CONCAT(nama_unit, ' (', kode, ')') AS value"))
+            ->pluck('value');
+
         return Inertia::render('Dashboard', [
             'data' => $query,
+            'jenisUnit' => $queryJenisUnit,
         ]);
     }
 
@@ -134,7 +142,11 @@ class HistoryPelaporanP2HController extends Controller
 
         // Apply jenis_unit filter
         $query->when($request->has('jenis_unit'), function ($query) use ($request) {
-            $jenisUnit = strtolower($request->input('jenis_unit'));
+            $input = strtolower(trim($request->input('jenis_unit')));
+
+            preg_match('/\((\w{2})\)$/', $input, $matches);
+            $jenisUnit = $matches[1] ?? '';
+
             $query->whereRaw('LOWER(jenis_unit) LIKE ?', ["%{$jenisUnit}%"]);
         });
 
@@ -145,45 +157,31 @@ class HistoryPelaporanP2HController extends Controller
         $xAxis = [];
         $yAxis = [];
 
-        if ($request->has('timeline')) {
-            if ($request->query('timeline') === 'Tahun') {
-                $groupedDataExist = $groupedData->groupBy(function ($item) {
-                    return Carbon::parse($item->tanggal_upload)->format('m'); // Group by month
-                })->map(function ($group) {
-                    return $group->count();
-                });
 
-                for ($month = 1; $month <= 12; $month++) {
-                    $date = Carbon::create()->month($month);
-                    $groupOfXaxis[] = $date->format('m');
-                    $xAxis[] = $date->locale('id')->isoFormat('MMM');
-                }
-            } else if ($request->query('timeline') === 'Minggu') {
-                $groupedDataExist = $groupedData->groupBy(function ($item) {
-                    return Carbon::parse($item->tanggal_upload)->format('Y-m-d');
-                })->map(function ($group) {
-                    return $group->count();
-                });
-                for ($i = 0; $i < 7; $i++) {
-                    $xAxis[] = $startOfWeek->locale('id')->isoFormat('D MMM');
-                    $groupOfXaxis[] = $startOfWeek->format('Y-m-d');
-                    $startOfWeek->addDay();
-                }
-            } else if ($request->query('timeline') === 'Bulan') {
-                $groupedDataExist = $groupedData->groupBy(function ($item) {
-                    return Carbon::parse($item->tanggal_upload)->format('Y-m-d');
-                })->map(function ($group) {
-                    return $group->count();
-                });
-                while ($startOfMonth->lte($endOfMonth)) {
-                    $xAxis[] = $startOfMonth->locale('id')->isoFormat('D MMM');
-                    $groupOfXaxis[] = $startOfMonth->format('Y-m-d');
-                    $startOfMonth->addDay();
-                }
+        if ($request->query('timeline') === 'Tahun') {
+            $groupedDataExist = $groupedData->groupBy(function ($item) {
+                return Carbon::parse($item->tanggal_upload)->format('m'); // Group by month
+            })->map(function ($group) {
+                return $group->count();
+            });
+
+            for ($month = 1; $month <= 12; $month++) {
+                $date = Carbon::create()->month($month);
+                $groupOfXaxis[] = $date->format('m');
+                $xAxis[] = $date->locale('id')->isoFormat('MMM');
             }
-        }
-
-        if ($request->has('startDate') && $request->has('endDate')) {
+        } else if ($request->query('timeline') === 'Bulan') {
+            $groupedDataExist = $groupedData->groupBy(function ($item) {
+                return Carbon::parse($item->tanggal_upload)->format('Y-m-d');
+            })->map(function ($group) {
+                return $group->count();
+            });
+            while ($startOfMonth->lte($endOfMonth)) {
+                $xAxis[] = $startOfMonth->locale('id')->isoFormat('D MMM');
+                $groupOfXaxis[] = $startOfMonth->format('Y-m-d');
+                $startOfMonth->addDay();
+            }
+        } else if ($request->has('startDate') && $request->has('endDate')) {
             $startDate = Carbon::parse($request->query('startDate'))->startOfDay();
             $endDate = Carbon::parse($request->query('endDate'))->endOfDay();
 
@@ -197,6 +195,17 @@ class HistoryPelaporanP2HController extends Controller
                 $xAxis[] = $startDate->locale('id')->isoFormat('D MMM');
                 $groupOfXaxis[] = $startDate->format('Y-m-d');
                 $startDate->addDay();
+            }
+        } else {
+            $groupedDataExist = $groupedData->groupBy(function ($item) {
+                return Carbon::parse($item->tanggal_upload)->format('Y-m-d');
+            })->map(function ($group) {
+                return $group->count();
+            });
+            for ($i = 0; $i < 7; $i++) {
+                $xAxis[] = $startOfWeek->locale('id')->isoFormat('D MMM');
+                $groupOfXaxis[] = $startOfWeek->format('Y-m-d');
+                $startOfWeek->addDay();
             }
         }
 

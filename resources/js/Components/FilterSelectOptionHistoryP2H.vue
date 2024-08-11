@@ -46,9 +46,9 @@
 </template>
 
 <script>
-import { ref, defineComponent } from "vue";
+import { ref, watch, defineComponent } from "vue";
 import { CalendarIcon } from "@heroicons/vue/24/solid";
-import { defineExpose } from "@vue/runtime-core";
+
 export default defineComponent({
     components: {
         CalendarIcon,
@@ -77,8 +77,6 @@ export default defineComponent({
             selectedOption.value = null;
         };
 
-        // Expose the resetSelectedOption method to the parent component
-        defineExpose({ resetSelectedOption });
         const toggleOptions = () => {
             showOptions.value = !showOptions.value;
         };

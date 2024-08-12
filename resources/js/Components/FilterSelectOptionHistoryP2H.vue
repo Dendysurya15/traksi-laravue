@@ -29,7 +29,7 @@
         </div>
         <div
             v-show="showOptions"
-            class="absolute z-10 w-[200px] rs:w-[150px] mt-1 bg-white border border-gray-300 rounded-md shadow-lg custom-scrollbar left-1/2 transform -translate-x-1/2 top-full"
+            class="absolute z-10 w-[190px] rs:w-[150px] mt-1 bg-white border border-gray-300 rounded-md shadow-lg custom-scrollbar left-1/2 transform -translate-x-1/2 top-full"
         >
             <div class="py-1">
                 <div

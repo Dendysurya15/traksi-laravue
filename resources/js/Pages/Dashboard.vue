@@ -529,7 +529,7 @@ function refreshData() {
                                 </div>
                             </div>
 
-                            <div class="px-5">
+                            <!-- <div class="px-5">
                                 <Accordion
                                     type="single"
                                     class="w-full"
@@ -549,7 +549,7 @@ function refreshData() {
                                         </AccordionContent>
                                     </AccordionItem>
                                 </Accordion>
-                            </div>
+                            </div> -->
                             <div class="px-5">
                                 <div
                                     v-if="isChartDataLoading"

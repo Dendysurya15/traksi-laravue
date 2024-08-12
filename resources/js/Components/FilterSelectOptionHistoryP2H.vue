@@ -1,12 +1,12 @@
 <template>
-    <div class="relative">
+    <div class="relative" ref="dropdown">
         <div
             class="border border-gray-300 rounded-md px-3 py-1.5 cursor-pointer flex items-center justify-between"
             @click="toggleOptions"
         >
-            <span v-if="selectedOption" class="text-gray-800">{{
-                selectedOption.label
-            }}</span>
+            <span v-if="selectedOption" class="text-gray-800">
+                {{ selectedOption.label }}
+            </span>
             <span v-else class="text-gray-400 flex items-center">
                 <CalendarIcon class="mr-2 h-4 w-4 opacity-70" />
                 {{ placeholder }}
@@ -29,7 +29,7 @@
         </div>
         <div
             v-show="showOptions"
-            class="absolute z-10 w-[180px] mt-2 bg-white border border-gray-300 rounded-md shadow-lg"
+            class="absolute z-10 w-[200px] rs:w-[150px] mt-1 bg-white border border-gray-300 rounded-md shadow-lg custom-scrollbar left-1/2 transform -translate-x-1/2 top-full"
         >
             <div class="py-1">
                 <div
@@ -46,7 +46,7 @@
 </template>
 
 <script>
-import { ref, watch, defineComponent } from "vue";
+import { ref, onMounted, onUnmounted, defineComponent } from "vue";
 import { CalendarIcon } from "@heroicons/vue/24/solid";
 
 export default defineComponent({
@@ -54,14 +54,13 @@ export default defineComponent({
         CalendarIcon,
     },
     props: {
-        // Define your props here
         defaultSelect: {
-            type: String, // Specify the type of the prop
-            required: true, // Make it required or not
+            type: String,
+            required: true,
         },
         placeholder: {
-            type: String, // Specify the type of the prop
-            required: true, // Make it required or not
+            type: String,
+            required: true,
         },
         options: {
             type: Array,
@@ -71,11 +70,7 @@ export default defineComponent({
     setup(props, { emit }) {
         const selectedOption = ref(null);
         const showOptions = ref(false);
-        const placeholder = props.placeholder;
-        const options = props.options;
-        const resetSelectedOption = () => {
-            selectedOption.value = null;
-        };
+        const dropdown = ref(null); // Reference to the dropdown container
 
         const toggleOptions = () => {
             showOptions.value = !showOptions.value;
@@ -86,16 +81,59 @@ export default defineComponent({
             showOptions.value = false;
             emit("option-selected", option.value);
         };
+        const resetSelectedOption = () => {
+            selectedOption.value = null;
+        };
+
+        const handleClickOutside = (event) => {
+            if (dropdown.value && !dropdown.value.contains(event.target)) {
+                showOptions.value = false;
+            }
+        };
+
+        onMounted(() => {
+            document.addEventListener("click", handleClickOutside);
+        });
+
+        onUnmounted(() => {
+            document.removeEventListener("click", handleClickOutside);
+        });
 
         return {
             selectedOption,
             showOptions,
-            options,
+            options: props.options,
             toggleOptions,
             selectOption,
             resetSelectedOption,
-            placeholder,
+            placeholder: props.placeholder,
+            dropdown,
         };
     },
 });
 </script>
+
+<style scoped>
+.custom-scrollbar {
+    max-height: 240px; /* Adjust as needed */
+    overflow-y: auto;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px; /* Width of the scrollbar */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: lightgray; /* Color of the scrollbar thumb */
+    border-radius: 4px; /* Rounds the corners of the scrollbar thumb */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #555; /* Darker color when hovered */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Background of the track */
+    border-radius: 4px; /* Rounds the corners of the track */
+}
+</style>

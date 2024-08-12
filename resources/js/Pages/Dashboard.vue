@@ -47,12 +47,7 @@ const optionsDefault = [
     { value: "Bulan", label: "Per Bulan" },
     { value: "Tahun", label: "Per Tahun" },
 ];
-// const optionsJenisUnit = [
-//     { value: "Excavator (HE)", label: "Excavator" },
-//     { value: "Becho Loader (BL)", label: "Becho Loader" },
-//     { value: "DT", label: "Dump Truck" },
-//     { value: "Hino", label: "Hino DT Truck" },
-// ];
+
 const optionsTahun = [{ value: "2024", label: "2024" }];
 const props = defineProps<{ data: LaporanP2H[]; jenisUnit }>();
 const jenisUnit = ref(props.jenisUnit);
@@ -94,12 +89,11 @@ const handleDateRangeSelection = (selectedRange) => {
 
     // Reset all filter select components
 
-    filterSelectRefs.value.forEach((ref) => {
-        if (ref) {
-            ref.resetSelectedOption(); // Ensure the method exists in your component
-        }
+    child.value.forEach((ref) => {
+        ref.resetSelectedOption(); // Ensure the method exists in your component
     });
 
+    console.log(test.value);
     fetchChartData();
 };
 
@@ -188,12 +182,6 @@ const updatedSeries = ref([]);
 const updatedXAxisCategories = ref([]);
 const isChartDataLoading = ref(false);
 const filterComponents = [
-    {
-        type: "year_operation",
-        defaultSelect: "",
-        options: optionsTahun,
-        placeholder: "Tahun Beroperasi",
-    },
     {
         type: "timeline",
         defaultSelect: "Minggu",

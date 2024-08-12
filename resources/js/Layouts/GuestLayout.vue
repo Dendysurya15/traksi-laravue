@@ -83,7 +83,7 @@ defineProps({
                         <p
                             class="scroll-m-20 ml-2 text-sky-800 text-md font-semibold tracking-tight"
                         >
-                            Monitoring-Traksi
+                            Fleet Management
                         </p>
                     </div>
                 </div>
@@ -127,7 +127,7 @@ defineProps({
                         <p
                             class="scroll-m-20 ml-2 text-sky-800 text-md font-semibold tracking-tight"
                         >
-                            Monitoring-Traksi
+                            Fleet Management
                         </p>
                     </div>
                 </div>
@@ -149,9 +149,9 @@ defineProps({
                 </div>
 
                 <small
-                    class="flex justify-center mb-7 text-sm font-medium leading-none"
+                    class="flex justify-center mb-7 mt-5 text-sm font-medium leading-none"
                 >
-                    @2024. Digital Architect SRS | Monitoring Traksi
+                    @2024. Digital Architect SRS | Fleet Management
                 </small>
             </div>
         </div>

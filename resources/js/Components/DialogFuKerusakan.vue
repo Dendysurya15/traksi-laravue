@@ -117,7 +117,7 @@ const formData = ref({
     tanggal_submit: "",
 });
 
-const emits = defineEmits(["sendToast", "gasBro"]);
+const emits = defineEmits(["sendToast"]);
 
 const resetError = () => {
     showError.value = false;

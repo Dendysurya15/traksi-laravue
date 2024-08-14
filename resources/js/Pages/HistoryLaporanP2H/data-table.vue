@@ -14,6 +14,8 @@ import {
 import { ref, watch, computed, onMounted } from "vue";
 import { valueUpdater } from "@/lib/utils";
 import { Button } from "@/Components/ui/button";
+import ExportHistoryP2H from "@/Components/ExportHistoryP2H.vue";
+import ToastNotification from "@/Components/ToastNotification.vue";
 import {
     Table,
     TableBody,
@@ -23,7 +25,6 @@ import {
     TableRow,
 } from "@/Components/ui/table";
 import { Input } from "@/Components/ui/input";
-
 import {
     Select,
     SelectTrigger,
@@ -49,6 +50,10 @@ import {
     DropdownMenuTrigger,
 } from "@/Components/ui/dropdown-menu";
 
+const showToast = ref(false);
+const toastTitle = ref("");
+const toastColor = ref("");
+const toastDescription = ref("");
 const sorting = ref<SortingState>([]);
 const columnFilters = ref<ColumnFiltersState>([]);
 const columnVisibility = ref<VisibilityState>({});
@@ -65,7 +70,13 @@ const props = defineProps<{
     };
     perPage: number;
 }>();
-
+const handleShowToast = async ({ title, description, color, id }) => {
+    showToast.value = true;
+    toastTitle.value = title;
+    toastDescription.value = description;
+    const colorNow = color === "green" ? "bg-green-500" : "bg-red-500";
+    toastColor.value = colorNow;
+};
 const emit = defineEmits([
     "fetch-data",
     "action-clicked",
@@ -202,7 +213,17 @@ watch(globalFilter, (newValue) => {
                     v-model="globalFilter"
                 />
             </div>
-            <div>
+            <div class="flex justify-center gap-2">
+                <ExportHistoryP2H
+                    :title="'LHP ALAT BERAT'"
+                    :data="data"
+                    @sendToast="handleShowToast"
+                />
+                <!-- <ExportHistoryP2H
+                    :title="'LHP UNIT'"
+                    :data="data"
+                    @sendToast="handleShowToast"
+                /> -->
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
                         <Button variant="outline" class="ml-auto">
@@ -374,4 +395,13 @@ watch(globalFilter, (newValue) => {
             </div>
         </div>
     </div>
+
+    <ToastNotification
+        :showToast="showToast"
+        :title="toastTitle"
+        :description="toastDescription"
+        :color="toastColor"
+        :duration="8000"
+        @close-toast="showToast = false"
+    />
 </template>

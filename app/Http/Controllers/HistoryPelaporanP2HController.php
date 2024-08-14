@@ -11,6 +11,7 @@ use Inertia\Response;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class HistoryPelaporanP2HController extends Controller
 {
@@ -48,7 +49,10 @@ class HistoryPelaporanP2HController extends Controller
 
         // Assuming you are working with the JenisUnit model
         $queryJenisUnit = JenisUnit::select(DB::raw("CONCAT(nama_unit, ' (', kode, ')') AS value"))
-            ->pluck('value');
+            ->pluck('value')
+            ->map(function ($item) {
+                return Str::title($item);
+            });
 
         return Inertia::render('Dashboard', [
             'data' => $query,
@@ -133,13 +137,6 @@ class HistoryPelaporanP2HController extends Controller
             }
         });
 
-
-        $query->when($request->has('startDate') && $request->has('endDate'), function ($query) use ($request) {
-            $startDate = Carbon::parse($request->query('startDate'))->format('Y-m-d H:i:s');
-            $endDate = Carbon::parse($request->query('endDate'))->addDay()->format('Y-m-d H:i:s');
-            $query->whereBetween('tanggal_upload', [$startDate, $endDate]);
-        });
-
         // Apply jenis_unit filter
         $query->when($request->has('jenis_unit'), function ($query) use ($request) {
             $input = strtolower(trim($request->input('jenis_unit')));
@@ -149,6 +146,14 @@ class HistoryPelaporanP2HController extends Controller
 
             $query->whereRaw('LOWER(jenis_unit) LIKE ?', ["%{$jenisUnit}%"]);
         });
+
+        $query->when($request->has('startDate') && $request->has('endDate'), function ($query) use ($request) {
+            $startDate = Carbon::parse($request->query('startDate'))->format('Y-m-d H:i:s');
+            $endDate = Carbon::parse($request->query('endDate'))->addDay()->format('Y-m-d H:i:s');
+            $query->whereBetween('tanggal_upload', [$startDate, $endDate]);
+        });
+
+
 
         // Fetch grouped data
         $groupedData = $query->get();
@@ -221,11 +226,11 @@ class HistoryPelaporanP2HController extends Controller
             }
         }
 
-
+        $title = $request->has('jenis_unit') ? 'Kerusakan ' . $request->query('jenis_unit') : 'Total Laporan Kerusakan';
         return response()->json([
             'series' => [
                 [
-                    'name' => 'Laporan P2H',
+                    'name' => $title,
                     'data' => $yAxis,
                 ],
             ],

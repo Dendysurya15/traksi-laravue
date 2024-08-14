@@ -16,7 +16,7 @@ import { Badge } from "@/Components/ui/badge";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
 import FilterSelectOptionHistoryP2H from "@/Components/FilterSelectOptionHistoryP2H.vue";
-import { format } from "date-fns";
+import { parse, format } from "date-fns";
 import { id } from "date-fns/locale";
 import { ArrowPathIcon, SignalSlashIcon } from "@heroicons/vue/24/solid";
 import ChartHistoryP2H from "@/Components/ChartHistoryP2H.vue";
@@ -75,34 +75,52 @@ const pagination = ref<PaginationMeta>({
 
 const handleDateRangeSelection = (selectedRange) => {
     if (selectedRange === null) {
-        clearDateFilter();
+        activeFilter.value = activeFilter.value.filter(
+            (item) => !isValidDateRange(item)
+        );
+        selectOptionFilterArr.value = selectOptionFilterArr.value.filter(
+            (item) => item.type !== "dateRange"
+        );
+
+        fetchChartData();
+
         return;
+    } else {
+        date.value = selectedRange;
+
+        selectOption(99, formatDateRange(selectedRange), "dateRange");
+    }
+};
+const isValidDateRange = (dateRange) => {
+    const dateFormat = "d MMMM yyyy";
+
+    const [start, end] = dateRange.split(" - ");
+
+    if (start && end) {
+        // Parse start and end dates
+        const startDate = parse(start.trim(), dateFormat, new Date(), {
+            locale: id,
+        });
+        const endDate = parse(end.trim(), dateFormat, new Date(), {
+            locale: id,
+        });
+
+        // Check if both dates are valid by ensuring they are not NaN
+        const isStartDateValid = !isNaN(startDate.getTime());
+        const isEndDateValid = !isNaN(endDate.getTime());
+
+        // Return true if both dates are valid
+        return isStartDateValid && isEndDateValid;
     }
 
-    // Update the date variable with the selected range
-    date.value = selectedRange;
-    activeFilterType.value = "date"; // Set the active filter type to 'date'
-
-    // Reset the select option filter
-    activeFilter.value = [];
-    selectOptionFilterArr.value = [];
-
-    // Reset all filter select components
-
-    child.value.forEach((ref) => {
-        ref.resetSelectedOption(); // Ensure the method exists in your component
-    });
-
-    console.log(test.value);
-    fetchChartData();
-};
-
-const clearDateFilter = () => {
-    date.value = null;
-    activeFilterType.value = null;
+    return false;
 };
 
 const clearActiveFilter = (filter) => {
+    if (isValidDateRange(filter)) {
+        date.value = null;
+    }
+    // Remove the filter from the activeFilter array
     if (activeFilterType.value === "option") {
         // Remove the filter from the activeFilter array
         activeFilter.value = activeFilter.value.filter(
@@ -116,23 +134,29 @@ const clearActiveFilter = (filter) => {
             activeFilterType.value = null;
         }
 
-        if (filter in test.value && child.value[test.value[filter]]) {
-            child.value[test.value[filter]].resetSelectedOption();
+        if (
+            filter in arrSemuaFilter.value &&
+            childRefFilterSelectOption.value[arrSemuaFilter.value[filter]]
+        ) {
+            childRefFilterSelectOption.value[
+                arrSemuaFilter.value[filter]
+            ].resetSelectedOption();
         }
 
-        if (filter in test.value) {
-            delete test.value[filter];
-        }
-    } else if (activeFilterType.value === "date") {
-        // Clear the date filter
-        activeFilter.value = [];
-        activeFilterType.value = null;
-        date.value = null;
-
-        if (datePickerRef.value) {
-            datePickerRef.value.resetSelectedOption();
+        if (filter in arrSemuaFilter.value) {
+            delete arrSemuaFilter.value[filter];
         }
     }
+    // else if (activeFilterType.value === "dateRange") {
+    //     // Clear the date filter
+    //     activeFilter.value = [];
+    //     activeFilterType.value = null;
+    //     date.value = null;
+
+    //     if (datePickerRef.value) {
+    //         datePickerRef.value.resetSelectedOption();
+    //     }
+    // }
 
     fetchChartData();
 };
@@ -146,7 +170,7 @@ const clearAllFilters = () => {
     selectOptionFilterArr.value = [];
     isResetAllOptionFilter.value = true;
 
-    child.value.forEach((ref) => {
+    childRefFilterSelectOption.value.forEach((ref) => {
         ref.resetSelectedOption(); // Ensure the method exists in your component
     });
 };
@@ -169,14 +193,8 @@ const formatDateRange = (dateRange) => {
 
     return `${formattedStartDate} - ${formattedEndDate}`;
 };
-const child = ref(null);
-const test = ref([]);
-const testChild = (index) => {
-    // child.value.forEach((ref) => {
-    //     ref.resetSelectedOption(); // Ensure the method exists in your component
-    // });
-    // child.value[test.value[index]].resetSelectedOption();
-};
+const childRefFilterSelectOption = ref(null);
+const arrSemuaFilter = ref([]);
 
 const updatedSeries = ref([]);
 const updatedXAxisCategories = ref([]);
@@ -199,6 +217,22 @@ const filterComponents = [
 const filterSelectRefs = ref([]);
 const selectOptionFilterArr = ref([]);
 
+const parseDateRangeSelectOption = (dateRange) => {
+    // Split the dateRange string into start and end dates
+
+    const [start, end] = dateRange.split(" - ");
+
+    // Define the date format
+    const dateFormat = "d MMMM yyyy";
+
+    // Parse and return date objects
+    const startDate = parse(start, dateFormat, new Date(), { locale: id });
+    const endDate = end
+        ? parse(end, dateFormat, new Date(), { locale: id })
+        : null;
+
+    return { startDate, endDate };
+};
 const isResetAllOptionFilter = ref(false);
 async function fetchChartData() {
     try {
@@ -210,14 +244,23 @@ async function fetchChartData() {
         if (activeFilterType.value === "option") {
             // Include the selected options as parameters
             selectOptionFilterArr.value.forEach((filter) => {
-                params[filter.type] = filter.value;
+                if (filter.type === "dateRange") {
+                    const { startDate, endDate } = parseDateRangeSelectOption(
+                        filter.value
+                    );
+                    params.startDate = startDate ? formatDate(startDate) : null;
+                    params.endDate = endDate ? formatDate(endDate) : null;
+                } else {
+                    params[filter.type] = filter.value;
+                }
             });
-        } else if (activeFilterType.value === "date") {
-            // Include the selected date range as parameters
-            const [startDate, endDate] = date.value;
-            params.startDate = startDate ? formatDate(startDate) : null;
-            params.endDate = endDate ? formatDate(endDate) : null;
         }
+        // else if (activeFilterType.value === "date") {
+        //     // Include the selected date range as parameters
+        //     const [startDate, endDate] = date.value;
+        //     params.startDate = startDate ? formatDate(startDate) : null;
+        //     params.endDate = endDate ? formatDate(endDate) : null;
+        // }
 
         // await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -305,31 +348,54 @@ async function getData(page = 1, paginate = 10): Promise<void> {
 }
 
 const selectOption = (index, option, filterType) => {
-    // Find the index of the existing filterType in the array
+    if (filterType === "dateRange") {
+        // Remove entries with types that are not 'jenis_unit'
+        selectOptionFilterArr.value = selectOptionFilterArr.value.filter(
+            (item) => item.type === "jenis_unit"
+        );
+
+        for (const key in arrSemuaFilter.value) {
+            if (
+                arrSemuaFilter.value[key] !== index &&
+                selectOptionFilterArr.value.find(
+                    (item) => item.value === key
+                ) === undefined
+            ) {
+                childRefFilterSelectOption.value[
+                    arrSemuaFilter.value[key]
+                ].resetSelectedOption();
+
+                delete arrSemuaFilter.value[key];
+            }
+        }
+    }
+
+    activeFilterType.value = "option";
+
+    // Check if the filterType is 'timeline' and if there's an existing 'dateRange' filter
+    if (filterType === "timeline") {
+        selectOptionFilterArr.value = selectOptionFilterArr.value.filter(
+            (item) => item.type !== "dateRange"
+        );
+
+        date.value = null;
+    }
+
     const existingFilterIndex = selectOptionFilterArr.value.findIndex(
         (item) => item.type === filterType
     );
 
     if (existingFilterIndex !== -1) {
-        // If the filterType exists, update its value
         selectOptionFilterArr.value[existingFilterIndex].value = option;
     } else {
-        // If the filterType does not exist, add a new entry
         selectOptionFilterArr.value.push({ value: option, type: filterType });
     }
 
-    // Update the activeFilterType and activeFilter based on the selected options
+    arrSemuaFilter.value[option] = index;
     if (selectOptionFilterArr.value.length > 0) {
-        activeFilterType.value = "option";
         activeFilter.value = selectOptionFilterArr.value.map(
             (item) => item.value
         );
-
-        test.value[option] = index;
-        console.log(test.value);
-    } else {
-        activeFilterType.value = null;
-        activeFilter.value = [];
     }
 
     fetchChartData();
@@ -391,27 +457,10 @@ function refreshData() {
                             </p>
 
                             <div
-                                class="flex px-5 gap-2 mb-3 justify-start mt-3 items-center"
+                                class="px-5 mt-2 flex flex-row rs:flex-col rs:space-y-2 rs:space-x-0 space-x-2"
                             >
-                                <!-- <FilterSelectOptionHistoryP2H
-                                    @option-selected="
-                                        selectOption($event, 'date')
-                                    "
-                                    defaultSelect="week"
-                                    :options="optionsDefault"
-                                    placeholder="Filter Chart"
-                                    ref="filterSelectOptionDateRef"
-                                />
+                                <!-- Filter Options -->
 
-                                <FilterSelectOptionHistoryP2H
-                                    @option-selected="
-                                        selectOption($event, 'jenis_unit')
-                                    "
-                                    defaultSelect="week"
-                                    :options="optionsJenisUnit"
-                                    placeholder="Filter Jenis Unit"
-                                    ref="filterSelectOptionJenisUnitRef"
-                                /> -->
                                 <FilterSelectOptionHistoryP2H
                                     v-for="(filter, index) in filterComponents"
                                     :key="index"
@@ -421,14 +470,17 @@ function refreshData() {
                                     :defaultSelect="filter.defaultSelect"
                                     :options="filter.options"
                                     :placeholder="filter.placeholder"
-                                    ref="child"
+                                    ref="childRefFilterSelectOption"
                                     :resetAll="isResetAllOptionFilter"
                                 />
-                                <div>
+
+                                <!-- Date Picker -->
+                                <div class="">
                                     <VueDatePicker
                                         v-model="date"
                                         range
-                                        position="left"
+                                        placeholder="Rentang Tanggal"
+                                        position="center"
                                         ref="dp"
                                         :enable-time-picker="false"
                                         :preview-format="formatVueDatePicker"
@@ -436,64 +488,29 @@ function refreshData() {
                                             handleDateRangeSelection
                                         "
                                     >
-                                        <!-- <template #action-buttons>
-                                            <p
-                                                @click="selectDate"
-                                                class="bg-green-500 text-white px-2 py-1 rounded cursor-pointer hover:bg-green-600"
-                                            >
-                                                Submit
-                                            </p>
-                                        </template> -->
                                     </VueDatePicker>
                                 </div>
                             </div>
 
                             <div
                                 v-if="activeFilterType"
-                                class="bg-[#fafafa] mx-5 rounded-sm mt-4 px-5 py-2 mb-3 ring-1 ring-gray-300 p-1 mt-2 flex items-center justify-between"
+                                class="bg-[#fafafa] mx-5 rounded-sm mt-4 px-2 md:px-5 py-2 mb-3 ring-1 ring-gray-300 mt-2 flex items-center justify-between"
                             >
                                 <div class="flex">
-                                    <span class="text-gray-800 mr-2"
+                                    <span class="text-gray-800 mr-2 rs:text-sm"
                                         >Filter Aktif:</span
                                     >
 
                                     <span
-                                        v-if="activeFilterType === 'option'"
                                         v-for="(filter, index) in activeFilter"
                                         :key="filter"
-                                        class="bg-green-100 text-green-500 font-medium ring-2 ring-green-200 px-2 rounded-md flex items-center mr-2"
+                                        class="bg-green-100 rs:text-sm text-green-500 font-medium ring-2 ring-green-200 px-2 rounded-md flex items-center mr-2"
                                     >
                                         {{ filter }}
                                         <button
                                             type="button"
                                             class="ml-2 text-white hover:text-gray-200 focus:outline-none"
                                             @click="clearActiveFilter(filter)"
-                                        >
-                                            <svg
-                                                class="h-4 w-4 text-green-300 hover:text-green-600"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    stroke-width="2"
-                                                    d="M6 18L18 6M6 6l12 12"
-                                                />
-                                            </svg>
-                                        </button>
-                                    </span>
-
-                                    <span
-                                        v-else-if="activeFilterType === 'date'"
-                                        class="bg-green-100 text-green-500 font-medium ring-2 ring-green-200 px-2 rounded-md flex items-center"
-                                    >
-                                        {{ formatDateRange(date) }}
-                                        <button
-                                            type="button"
-                                            class="ml-2 text-white hover:text-gray-200 focus:outline-none"
-                                            @click="clearDateFilter"
                                         >
                                             <svg
                                                 class="h-4 w-4 text-green-300 hover:text-green-600"
@@ -559,15 +576,18 @@ function refreshData() {
                                         class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"
                                     ></div>
                                 </div>
-                                <ChartHistoryP2H
-                                    v-else
-                                    :series="updatedSeries"
-                                    :xAxisCategories="updatedXAxisCategories"
-                                ></ChartHistoryP2H>
+                                <div v-else>
+                                    <ChartHistoryP2H
+                                        :series="updatedSeries"
+                                        :xAxisCategories="
+                                            updatedXAxisCategories
+                                        "
+                                    ></ChartHistoryP2H>
+                                </div>
                             </div>
                         </div>
                         <div
-                            class="px-5 pt-3 font-semibold text-xl justify-start items-center flex"
+                            class="px-5 pt-3 font-semibold text-2xl justify-start items-center flex"
                         >
                             History Laporan P2H
                             <!-- - {{ live_tanggal }} -->

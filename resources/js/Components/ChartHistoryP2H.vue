@@ -30,6 +30,7 @@ export default {
             return {
                 chart: {
                     height: 350,
+                    columnWidth: "70%",
                     type: "bar",
                     zoom: {
                         enabled: false,
@@ -61,6 +62,13 @@ export default {
                 },
                 xaxis: {
                     categories: this.xAxisCategories,
+                },
+                tooltip: {
+                    y: {
+                        formatter: function (value) {
+                            return Math.round(value) + " Unit"; // Round the value to the nearest integer
+                        },
+                    },
                 },
             };
         },

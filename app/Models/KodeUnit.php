@@ -5,10 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Estate extends Model
+class KodeUnit extends Model
 {
     use HasFactory;
 
-    protected $connection = 'mysql3';
-    protected $table = 'estate';
+    protected $connection = 'mysql2';
+    protected $table = 'kode_unit_2';
 }

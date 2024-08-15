@@ -7,11 +7,12 @@ import { IconFileExcel, IconLoaderQuarter } from "@tabler/icons-vue";
 // Define emits to send toast notifications
 const emits = defineEmits(["sendToast"]);
 
-const props = defineProps(["data", "title"]);
+const props = defineProps(["data", "title", "regWilEst"]);
 
 // State for loading
 const loading = ref(false);
 
+//handle column AA, BB , CC
 function numberToExcelColumn(number) {
     let column = "";
     let temp;
@@ -60,8 +61,8 @@ const generateExcel = async () => {
 
             // Set main title and merge cells A1 to E1
             worksheet.mergeCells("A1:E1");
-            worksheet.getCell("A1").value = props.data.length;
-            worksheet.getCell("A1").alignment = { horizontal: "center" };
+            worksheet.getCell("A1").value = "MONITORING UNIT PERBAIKAN";
+            worksheet.getCell("A1").alignment = { horizontal: "left" };
             worksheet.getCell("A1").font = { bold: true };
 
             // Set column headers in row 2
@@ -71,6 +72,16 @@ const generateExcel = async () => {
             worksheet.getCell("C2").value = headers[2];
             worksheet.getCell("D2").value = headers[3];
 
+            worksheet.mergeCells("A2:A3");
+            worksheet.mergeCells("B2:B3");
+            worksheet.mergeCells("C2:C3");
+            worksheet.mergeCells("D2:D3");
+
+            const headerCells = ["A2", "B2", "C2", "D2"];
+            headerCells.forEach((cellAddress) => {
+                const cell = worksheet.getCell(cellAddress);
+                cell.alignment = { horizontal: "center", vertical: "middle" };
+            });
             // Set month header and merge cells E2 to end of month
             const numberOfDays = new Date(
                 currentDate.getFullYear(),
@@ -98,19 +109,93 @@ const generateExcel = async () => {
                 };
             }
 
+            const regWilEst = props.regWilEst; // Adjust this according to your actual data source
+            let rowIndex = 4; // Start from the row below headers
+
+            regWilEst.forEach((regional) => {
+                regional.wilayah.forEach((wilayah) => {
+                    // Populate "WIL" column
+                    worksheet.getCell(`A${rowIndex}`).value = wilayah.nama;
+
+                    // Loop through each estate and add them to separate rows
+                    if (wilayah.estate.length > 0) {
+                        let startRowIndex = rowIndex;
+                        wilayah.estate.forEach((estate) => {
+                            worksheet.getCell(`B${rowIndex}`).value =
+                                estate.est;
+
+                            if (
+                                estate.data &&
+                                typeof estate.data === "object"
+                            ) {
+                                Object.entries(estate.data).forEach(
+                                    ([key, items]) => {
+                                        if (Array.isArray(items)) {
+                                            items.forEach((item) => {
+                                                worksheet.getCell(
+                                                    `C${rowIndex}`
+                                                ).value = key; // Set key in Column C
+                                                worksheet.getCell(
+                                                    `D${rowIndex}`
+                                                ).value = item.type || ""; // Set type in Column D
+                                                rowIndex++;
+                                            });
+                                        } else {
+                                            console.warn(
+                                                `Expected an array for key ${key}, but got ${typeof items}`
+                                            );
+                                        }
+                                    }
+                                );
+
+                                // After processing all items for the estate, add a total row
+                                worksheet.getCell(`B${rowIndex}`).value =
+                                    "TOTAL " + estate.est;
+                                // worksheet.getCell(`C${rowIndex}`).value =
+                                //     estate.est;
+
+                                worksheet.mergeCells(
+                                    `B${rowIndex}:C${rowIndex}`
+                                );
+                                worksheet.getCell(`B${rowIndex}`).alignment = {
+                                    horizontal: "center",
+                                };
+                                worksheet.getCell(`B${rowIndex}`).font = {
+                                    bold: true,
+                                };
+                                worksheet.getCell(`D${rowIndex}`).value = ""; // Leave this empty or customize if needed
+                                rowIndex++; // Move to the next row after total
+                            } else {
+                                console.warn(
+                                    `estate.data is not an object or is undefined for estate ${estate.est}`
+                                );
+                            }
+                        });
+                    } else {
+                        // If there are no estates, still move to the next row
+                        worksheet.getCell(`B${rowIndex}`).value = "";
+                        worksheet.getCell(`C${rowIndex}`).value =
+                            "Placeholder KODE UNIT"; // Customize if needed
+                        worksheet.getCell(`D${rowIndex}`).value =
+                            "Placeholder NO UNIT"; // Customize if needed
+                        rowIndex++;
+                    }
+                });
+            });
+
             // Set column widths
-            worksheet.columns = [
-                { width: 15 }, // Column for WIL
-                { width: 20 }, // Column for ASET
-                { width: 20 }, // Column for KODE UNIT
-                { width: 20 }, // Column for NO UNIT
-            ];
+            // worksheet.columns = [
+            //     { width: 15 }, // Column for WIL
+            //     { width: 20 }, // Column for ASET
+            //     { width: 20 }, // Column for KODE UNIT
+            //     { width: 20 }, // Column for NO UNIT
+            // ];
 
             // Freeze the first four columns
             worksheet.views = [{ state: "frozen", xSplit: 4 }];
         }
 
-        // await delay(1500);
+        await delay(1500);
         // Generate the Excel file
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: "application/octet-stream" });
@@ -127,7 +212,7 @@ const generateExcel = async () => {
         });
     } catch (error) {
         // Delay before emitting error toast
-        // await delay(1500); // 2-second delay
+        await delay(1500); // 2-second delay
 
         // Emit error toast
         emits("sendToast", {

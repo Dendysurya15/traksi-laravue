@@ -42,7 +42,9 @@ const optionsTahun = [{ value: "2024", label: "2024" }];
 const props = defineProps<{
     data: LaporanP2H[];
     jenisUnit;
+    regWilEst;
 }>();
+
 const jenisUnit = ref(props.jenisUnit);
 const data = ref<LaporanP2H[]>(props.data);
 
@@ -658,6 +660,7 @@ function refreshData() {
                                 :data="data"
                                 :pagination="pagination"
                                 :per-page="pagination.per_page"
+                                :regWilEst="props.regWilEst"
                                 @fetch-data="getData"
                                 @action-clicked="actionStateTableTrigger"
                                 @shared-action-type-changed="

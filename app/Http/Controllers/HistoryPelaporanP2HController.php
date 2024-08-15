@@ -47,6 +47,7 @@ class HistoryPelaporanP2HController extends Controller
             }
         }
 
+        $queryRegWilEst = get_lhp_unit();
         // Assuming you are working with the JenisUnit model
         $queryJenisUnit = JenisUnit::select(DB::raw("CONCAT(nama_unit, ' (', kode, ')') AS value"))
             ->pluck('value')
@@ -57,6 +58,7 @@ class HistoryPelaporanP2HController extends Controller
         return Inertia::render('Dashboard', [
             'data' => $query,
             'jenisUnit' => $queryJenisUnit,
+            'regWilEst' => $queryRegWilEst,
         ]);
     }
 

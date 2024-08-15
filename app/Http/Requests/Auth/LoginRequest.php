@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -41,14 +43,29 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        // if (!Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
-        //     RateLimiter::hit($this->throttleKey());
+        $user = User::where('email', $this->email)
+            ->where('password', $this->password)
+            ->first();
 
-        //     throw ValidationException::withMessages([
-        //         'email' => trans('auth.failed'),
-        //     ]);
-        // }
+        if (!$user) {
+            RateLimiter::hit($this->throttleKey());
 
+            throw ValidationException::withMessages([
+                'email' => trans('auth.failed'),
+            ]);
+        }
+
+        if (!isset($user->api_token)) {
+
+            $token = $user->createToken('API Token')->plainTextToken;
+
+            $user->api_token = $token;
+            DB::table('pengguna')
+                ->where('email', $this->email)
+                ->where('password', $this->password)
+                ->update(['api_token' => $token]);
+        }
+        Auth::login($user);
         RateLimiter::clear($this->throttleKey());
     }
 

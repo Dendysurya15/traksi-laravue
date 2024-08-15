@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted } from "vue";
+import { ref, onUnmounted, watch } from "vue";
 import { Button } from "@/Components/ui/button";
 import {
     ToastAction,
@@ -13,6 +13,7 @@ import {
     CheckCircleIcon,
     ExclamationTriangleIcon,
 } from "@heroicons/vue/24/solid";
+
 const props = defineProps<{
     showToast: boolean;
     title: string;
@@ -23,15 +24,20 @@ const props = defineProps<{
 
 const emit = defineEmits(["close-toast"]);
 
-let toastTimeout = null;
-let closeTimeout = null;
+const toastOpen = ref(props.showToast);
+let toastTimeout: NodeJS.Timeout | null = null;
+let closeTimeout: NodeJS.Timeout | null = null;
 
 const closeToast = () => {
     emit("close-toast");
 };
 
-// Set a timeout to close the toast after the specified duration
-onMounted(() => {
+const startToastTimer = () => {
+    // Clear any existing timeouts
+    if (toastTimeout) clearTimeout(toastTimeout);
+    if (closeTimeout) clearTimeout(closeTimeout);
+
+    // Set a timeout to close the toast after the specified duration
     if (props.duration) {
         toastTimeout = setTimeout(() => {
             // Introduce a delay before closing the toast
@@ -40,19 +46,32 @@ onMounted(() => {
             }, 500); // Adjust the delay duration as needed (in milliseconds)
         }, props.duration);
     }
-});
+};
+
+// Watch for changes in the showToast prop to start the timer when the toast is shown
+watch(
+    () => props.showToast,
+    (newValue) => {
+        if (newValue) {
+            toastOpen.value = true;
+            startToastTimer();
+        } else {
+            toastOpen.value = false;
+        }
+    }
+);
 
 // Clean up the timeouts when the component is unmounted
 onUnmounted(() => {
-    clearTimeout(toastTimeout);
-    clearTimeout(closeTimeout);
+    if (toastTimeout) clearTimeout(toastTimeout);
+    if (closeTimeout) clearTimeout(closeTimeout);
 });
 </script>
 
 <template>
     <ToastProvider swipeDirection="right">
         <ToastRoot
-            v-model:open="props.showToast"
+            v-model:open="toastOpen"
             class="text-white rounded-md shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] p-[15px] grid [grid-template-areas:_'title_action'_'description_action'] grid-cols-[auto_max-content] gap-x-[15px] items-center data-[state=open]:animate-slideIn data-[state=closed]:animate-hide data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out]"
             :class="props.color"
         >
@@ -61,7 +80,6 @@ onUnmounted(() => {
                     <p class="font-extrabold text-xl">
                         {{ props.title }}
                     </p>
-
                     <p
                         class="[grid-area:_description] m-0 text-slate11 text-[13px] leading-[1.3]"
                     >
@@ -76,7 +94,7 @@ onUnmounted(() => {
                 alt-text="Close"
                 @click="closeToast"
             >
-                <Button variant="secondary"> Tutup </Button>
+                <Button variant="secondary">Tutup</Button>
             </ToastAction>
         </ToastRoot>
         <ToastViewport

@@ -32,23 +32,9 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
-        $pengguna = Pengguna::where('email', $request->email)->first();
-
-        if (!$pengguna) {
-            return back()->withErrors(['system' => 'Email tidak terdaftar pada sistem!']);
-        } else if ($pengguna && $request->password != $pengguna->password) {
-            return back()->withErrors(['system' => 'Password User salah!']);
-        }
-
-        auth()->login($pengguna);
-
         $request->session()->regenerate();
 
-        if (!auth()->check()) {
-            return back()->with('error', 'Unauthorized access');
-        }
-
-        return redirect()->intended(route('dashboard'));
+        return redirect()->intended(route('dashboard', absolute: false));
     }
 
     /**

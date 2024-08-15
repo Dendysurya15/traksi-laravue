@@ -4,7 +4,7 @@ import SidebarComponent from "./SidebarComponent.vue";
 import { Link, usePage, router } from "@inertiajs/vue3";
 import { ChevronDownIcon, HomeIcon } from "@heroicons/vue/24/solid";
 import ActionProfileNavbar from "@/Components/actionProfileNavbar.vue";
-
+import setupAxiosInterceptors from "@/utils/axiosConfig";
 export default {
     components: {
         SidebarComponent,
@@ -34,13 +34,16 @@ export default {
         },
     },
     setup() {
+        const page = usePage();
+        const user = page.props.auth.user;
+        setupAxiosInterceptors(user.api_token);
         const isSidebarOpen = ref(false);
         const isSmallScreen = ref(window.innerWidth < 1279);
-        const page = usePage();
+
         const routeNow =
             page.url.replace("/", "").charAt(0).toUpperCase() +
             page.url.slice(2);
-        const user = page.props.auth.user;
+
         const linksDropdown = [
             { href: "/profile", label: "Profile" },
             {
@@ -84,6 +87,7 @@ export default {
         return {
             isSidebarOpen,
             routeNow,
+
             linksDropdown,
             isSmallScreen,
             toggleSidebar,

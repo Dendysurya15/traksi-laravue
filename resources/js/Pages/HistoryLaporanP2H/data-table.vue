@@ -401,7 +401,7 @@ watch(globalFilter, (newValue) => {
         :title="toastTitle"
         :description="toastDescription"
         :color="toastColor"
-        :duration="8000"
+        :duration="5000"
         @close-toast="showToast = false"
     />
 </template>

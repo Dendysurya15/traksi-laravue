@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import { Head } from "@inertiajs/vue3";
+import { Head, usePage } from "@inertiajs/vue3";
 import { ref, onMounted, watch, computed } from "vue";
 import axios from "axios";
 import { Skeleton } from "@/Components/ui/skeleton";
@@ -18,30 +18,20 @@ import "@vuepic/vue-datepicker/dist/main.css";
 import FilterSelectOptionHistoryP2H from "@/Components/FilterSelectOptionHistoryP2H.vue";
 import { parse, format } from "date-fns";
 import { id } from "date-fns/locale";
-import { ArrowPathIcon, SignalSlashIcon } from "@heroicons/vue/24/solid";
-import ChartHistoryP2H from "@/Components/ChartHistoryP2H.vue";
 import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/Components/ui/accordion";
+    ArrowPathIcon,
+    ExclamationTriangleIcon,
+    SignalSlashIcon,
+} from "@heroicons/vue/24/solid";
+import ChartHistoryP2H from "@/Components/ChartHistoryP2H.vue";
 
-const defaultValue = "item-1";
-
-const accordionItems = [
-    {
-        value: "item-2",
-        title: "*Catatan",
-        content:
-            "Yes. It's unstyled by default, giving you freedom over the look and feel.",
-    },
-];
 const activeFilterType = ref(null);
 const date = ref();
 const formatVueDatePicker = (date) => {
     return "";
 };
+const page = usePage();
+const user = page.props.auth.user;
 const optionsDefault = [
     { value: "Minggu", label: "Per Minggu" },
     { value: "Bulan", label: "Per Bulan" },
@@ -49,7 +39,10 @@ const optionsDefault = [
 ];
 
 const optionsTahun = [{ value: "2024", label: "2024" }];
-const props = defineProps<{ data: LaporanP2H[]; jenisUnit }>();
+const props = defineProps<{
+    data: LaporanP2H[];
+    jenisUnit;
+}>();
 const jenisUnit = ref(props.jenisUnit);
 const data = ref<LaporanP2H[]>(props.data);
 
@@ -57,15 +50,13 @@ const optionsJenisUnit = jenisUnit.value.map((unit: any) => ({
     value: unit, // Replace with the correct property name if different
     label: unit, // Replace with the correct property name if different
 }));
-
-// console.log(jj);
 const live_tanggal = useDateFormat(useNow(), "dddd, D MMM YYYY  HH:mm:ss", {
     locales: "id-ID",
 });
 const typeContentData = ref("");
 const detailContentData = ref(null);
 const isDetailContent = ref(false);
-
+const listRegional = ref<any[]>([]);
 const pagination = ref<PaginationMeta>({
     current_page: 1,
     last_page: 1,
@@ -91,6 +82,7 @@ const handleDateRangeSelection = (selectedRange) => {
         selectOption(99, formatDateRange(selectedRange), "dateRange");
     }
 };
+
 const isValidDateRange = (dateRange) => {
     const dateFormat = "d MMMM yyyy";
 
@@ -303,6 +295,24 @@ function formatDate(date) {
 
     return `${year}-${month}-${day}`;
 }
+
+// async function fetchListRegional() {
+//     try {
+//         axios.defaults.headers.common[
+//             "Authorization"
+//         ] = `Bearer ${user.api_token}`;
+
+//         const response = await axios.get(
+//             "https://auth.srs-ssms.com/api/listRegional"
+//         );
+
+//         console.log(response.data);
+//         listRegional.value = response.data; // Update the local state
+//     } catch (additionalError) {
+//         console.error("Error fetching list regional data:", additionalError);
+//     }
+// }
+
 async function getData(page = 1, paginate = 10): Promise<void> {
     try {
         isFetchingData.value = true;
@@ -319,27 +329,33 @@ async function getData(page = 1, paginate = 10): Promise<void> {
             axios
         );
 
-        watch(fetchedData, (newData) => {
-            if (newData) {
-                data.value = newData.data;
+        // Use a single watch to handle both data and error
+        watch(
+            [fetchedData, isError],
+            ([newData, newError]) => {
+                if (newError) {
+                    errorFetching.value = newError.message;
+                    isFetchingData.value = false;
+                    return;
+                }
 
-                pagination.value = {
-                    current_page: newData.current_page,
-                    last_page: newData.last_page,
-                    per_page: paginate,
-                    total: newData.total,
-                };
-                isFetchingData.value = false;
-            }
-        });
+                if (newData) {
+                    data.value = newData.data;
 
-        watch(isError, (newError) => {
-            if (newError) {
-                errorFetching.value =
-                    "Tidak dapat mengakses data, Pastikan Koneksi Internet Stabil!";
-                isFetchingData.value = false;
-            }
-        });
+                    pagination.value = {
+                        current_page: newData.current_page,
+                        last_page: newData.last_page,
+                        per_page: paginate,
+                        total: newData.total,
+                    };
+
+                    // fetchListRegional();
+
+                    isFetchingData.value = false;
+                }
+            },
+            { immediate: true }
+        );
     } catch (error) {
         console.error("Error fetching data:", error);
         errorFetching.value = "Error fetching data.";
@@ -591,7 +607,7 @@ function refreshData() {
                         >
                             History Laporan P2H
                             <!-- - {{ live_tanggal }} -->
-                            <!-- <div class="cursor-pointer ml-3 text-sm">
+                            <div class="cursor-pointer ml-3 text-sm">
                                 <Badge
                                     class="bg-gray-200 text-black gap-2 hover:bg-gray-300"
                                     @click="refreshData"
@@ -601,7 +617,7 @@ function refreshData() {
                                         class="w-5 h-5 text-green-600"
                                     />
                                 </Badge>
-                            </div> -->
+                            </div>
                         </div>
                         <div v-if="isFetchingData" class="p-4">
                             <div class="space-y-2">
@@ -630,7 +646,9 @@ function refreshData() {
                             v-else-if="errorFetching"
                             class="flex justify-center gap-3 h-96 items-center font-bold text-xl"
                         >
-                            <SignalSlashIcon class="w-5 h-5 text-green-600" />
+                            <ExclamationTriangleIcon
+                                class="w-5 h-5 text-green-600"
+                            />
                             <p>{{ errorFetching }}</p>
                         </div>
                         <div v-else>

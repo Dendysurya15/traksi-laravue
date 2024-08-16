@@ -144,17 +144,33 @@ if (!function_exists('get_all_data_each_unit')) {
         foreach ($query_reg_wil_est as &$region) {
             foreach ($region['wilayah'] as &$wilayah) {
                 foreach ($wilayah['estate'] as &$estate) {
-
+                    $total = 0;
                     foreach ($estate['data'] as $key => &$per_unit) {
+
                         foreach ($per_unit as $key => &$value) {
                             $no_unit = preg_replace('/\D/', '', $value['no_unit']);
+
                             if (isset($groupedArray[$value['kode']][$value['est']][$no_unit])) {
+                                if ($value['est'] == 'BSJ' && $value['kode'] == 'HN') {
+                                    $no_unit = preg_replace('/\D/', '', $value['no_unit']);
+                                }
+
                                 $value['data'] = $groupedArray[$value['kode']][$value['est']][$no_unit];
+                                foreach ($value['data'] as $key => $datas) {
+                                    // Decode the JSON string in 'kerusakan_unit'
+                                    $kerusakanUnit = json_decode($datas['kerusakan_unit'], true);
+                                    // Check if 'kerusakan_unit' is not empty
+                                    if (!empty($kerusakanUnit)) {
+                                        // Count the number of items in the 'kerusakan_unit' array
+                                        $total += count($kerusakanUnit);
+                                    }
+                                }
                             } else {
                                 $value['data'] = []; // or any default value you want
                             }
                         }
                     }
+                    $estate['total'] = $total;
                 }
             }
         }

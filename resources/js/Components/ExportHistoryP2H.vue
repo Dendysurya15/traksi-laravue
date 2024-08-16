@@ -40,7 +40,7 @@ const generateExcel = async () => {
 
         // Get the current month number (0-based: January is 0)
         const currentMonthIndex = currentDate.getMonth();
-
+        const startDateColumn = 5;
         // Loop through the months starting from the current month
         for (let i = 0; i <= currentMonthIndex; i++) {
             // Create a date object for the first day of the month
@@ -82,6 +82,7 @@ const generateExcel = async () => {
                 const cell = worksheet.getCell(cellAddress);
                 cell.alignment = { horizontal: "center", vertical: "middle" };
             });
+
             // Set month header and merge cells E2 to end of month
             const numberOfDays = new Date(
                 currentDate.getFullYear(),
@@ -99,14 +100,22 @@ const generateExcel = async () => {
             worksheet.getCell("E2").alignment = { horizontal: "center" };
             worksheet.getCell("E2").font = { bold: true };
 
-            // Add date headers starting from row 3, starting from column E
-            const startDateColumn = 5; // Column E is 5
+            // Add date headers using props.dateUntilNow for the current month
+            const monthNameKey = monthName.slice(0, 3); // Extract "Jan", "Feb", etc.
+            const datesForMonth = props.dateUntilNow[monthNameKey];
 
-            for (let j = 1; j <= numberOfDays; j++) {
-                worksheet.getCell(3, startDateColumn + j - 1).value = j;
-                worksheet.getCell(3, startDateColumn + j - 1).alignment = {
-                    horizontal: "center",
-                };
+            if (datesForMonth) {
+                Object.entries(datesForMonth).forEach(
+                    ([day, dateValue], index) => {
+                        const columnIndex = startDateColumn + index; // Adjust for the correct column
+                        worksheet.getCell(3, columnIndex).value = parseInt(day);
+                        worksheet.getCell(3, columnIndex).alignment = {
+                            horizontal: "center",
+                        };
+                    }
+                );
+            } else {
+                console.warn(`No date data available for ${monthNameKey}`);
             }
 
             const regWilEst = props.regWilEst; // Adjust this according to your actual data source

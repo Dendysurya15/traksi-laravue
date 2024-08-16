@@ -7,7 +7,7 @@ import { IconFileExcel, IconLoaderQuarter } from "@tabler/icons-vue";
 // Define emits to send toast notifications
 const emits = defineEmits(["sendToast"]);
 
-const props = defineProps(["data", "title", "regWilEst"]);
+const props = defineProps(["data", "title", "regWilEst", "dateUntilNow"]);
 
 // State for loading
 const loading = ref(false);
@@ -137,7 +137,7 @@ const generateExcel = async () => {
                                                 ).value = key; // Set key in Column C
                                                 worksheet.getCell(
                                                     `D${rowIndex}`
-                                                ).value = item.type || ""; // Set type in Column D
+                                                ).value = item.no_unit || ""; // Set type in Column D
                                                 rowIndex++;
                                             });
                                         } else {

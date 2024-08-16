@@ -70,6 +70,7 @@ const props = defineProps<{
     };
     perPage: number;
     regWilEst: [];
+    dateUntilNow: [];
 }>();
 
 const handleShowToast = async ({ title, description, color, id }) => {
@@ -220,6 +221,7 @@ watch(globalFilter, (newValue) => {
                     :title="'LHP ALAT BERAT'"
                     :data="data"
                     :regWilEst="props.regWilEst"
+                    :dateUntilNow="props.dateUntilNow"
                     @sendToast="handleShowToast"
                 />
                 <!-- <ExportHistoryP2H

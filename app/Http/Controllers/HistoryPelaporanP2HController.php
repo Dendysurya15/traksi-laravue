@@ -48,6 +48,7 @@ class HistoryPelaporanP2HController extends Controller
         }
 
         $queryRegWilEst = get_lhp_unit();
+        $dateUntilNow = generate_dates();
         // Assuming you are working with the JenisUnit model
         $queryJenisUnit = JenisUnit::select(DB::raw("CONCAT(nama_unit, ' (', kode, ')') AS value"))
             ->pluck('value')
@@ -59,6 +60,7 @@ class HistoryPelaporanP2HController extends Controller
             'data' => $query,
             'jenisUnit' => $queryJenisUnit,
             'regWilEst' => $queryRegWilEst,
+            'dateUntilNow' => $dateUntilNow
         ]);
     }
 

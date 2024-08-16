@@ -43,6 +43,7 @@ const props = defineProps<{
     data: LaporanP2H[];
     jenisUnit;
     regWilEst;
+    dateUntilNow;
 }>();
 
 const jenisUnit = ref(props.jenisUnit);
@@ -661,6 +662,7 @@ function refreshData() {
                                 :pagination="pagination"
                                 :per-page="pagination.per_page"
                                 :regWilEst="props.regWilEst"
+                                :dateUntilNow="props.dateUntilNow"
                                 @fetch-data="getData"
                                 @action-clicked="actionStateTableTrigger"
                                 @shared-action-type-changed="

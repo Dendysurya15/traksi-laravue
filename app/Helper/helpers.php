@@ -77,15 +77,31 @@ if (!function_exists('get_lhp_unit')) {
         $data = [];
 
 
+
         foreach ($query_reg_wil_est as &$region) {
             foreach ($region['wilayah'] as &$wilayah) {
+                $totalWil = 0;
                 foreach ($wilayah['estate'] as &$estate) {
                     if (isset($query_list_unit[$estate['est']])) {
                         $estate['data'] = $query_list_unit[$estate['est']];
+
+                        // Initialize the total variable
+                        $total = 0;
+                        foreach ($estate['data'] as $key => &$values) {
+                            if (is_array($values)) {
+                                $total += count($values);
+                            }
+                        }
+
+                        // Add the total key to the estate
+                        $estate['total'] = $total;
                     } else {
                         $estate['data'] = []; // or any default value you want
+                        $estate['total'] = 0; // Set total to 0 if no data is available
                     }
+                    $totalWil += $total;
                 }
+                $wilayah['total'] = $totalWil;
             }
         }
 
@@ -151,10 +167,6 @@ if (!function_exists('get_all_data_each_unit')) {
                             $no_unit = preg_replace('/\D/', '', $value['no_unit']);
 
                             if (isset($groupedArray[$value['kode']][$value['est']][$no_unit])) {
-                                // if ($value['est'] == 'SLE' && $value['kode'] == 'DT') {
-                                //     $no_unit = preg_replace('/\D/', '', $value['no_unit']);
-                                //     dd($no_unit);
-                                // }
 
                                 $value['data'] = $groupedArray[$value['kode']][$value['est']][$no_unit];
                                 foreach ($value['data'] as $key => $datas) {
@@ -171,7 +183,7 @@ if (!function_exists('get_all_data_each_unit')) {
                             }
                         }
                     }
-                    $estate['total'] = $total;
+                    $estate['jum_kerusakan'] = $total;
                 }
             }
         }

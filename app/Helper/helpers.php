@@ -112,7 +112,7 @@ if (!function_exists('get_all_data_each_unit')) {
             }
 
             // Remove letters from 'kode_unit', keep only numbers
-            $item['kode_unit_modified'] = trim(preg_replace('/[a-zA-Z]/', '', $item['kode_unit']));
+            $item['kode_unit_modified'] = preg_replace('/\D/', '', $item['kode_unit']);
 
             // Format 'tanggal_upload' to 'Y-m-d'
             $item['tanggal_upload_formatted'] = Carbon::parse($item['tanggal_upload'])->format('Y-m-d');
@@ -151,9 +151,10 @@ if (!function_exists('get_all_data_each_unit')) {
                             $no_unit = preg_replace('/\D/', '', $value['no_unit']);
 
                             if (isset($groupedArray[$value['kode']][$value['est']][$no_unit])) {
-                                if ($value['est'] == 'BSJ' && $value['kode'] == 'HN') {
-                                    $no_unit = preg_replace('/\D/', '', $value['no_unit']);
-                                }
+                                // if ($value['est'] == 'SLE' && $value['kode'] == 'DT') {
+                                //     $no_unit = preg_replace('/\D/', '', $value['no_unit']);
+                                //     dd($no_unit);
+                                // }
 
                                 $value['data'] = $groupedArray[$value['kode']][$value['est']][$no_unit];
                                 foreach ($value['data'] as $key => $datas) {
@@ -256,14 +257,14 @@ if (!function_exists('generate_dates')) {
             'Feb' => '02',
             'Mar' => '03',
             'Apr' => '04',
-            'May' => '05',
+            'Mei' => '05',
             'Jun' => '06',
             'Jul' => '07',
-            'Aug' => '08',
+            'Agu' => '08',
             'Sep' => '09',
-            'Oct' => '10',
+            'Okt' => '10',
             'Nov' => '11',
-            'Dec' => '12'
+            'Des' => '12'
         ];
 
         foreach ($months as $shortMonth => $monthNumber) {

@@ -26,6 +26,10 @@ function numberToExcelColumn(number) {
     return column;
 }
 
+function isSunday(date) {
+    return date.getDay() === 0; // Sunday is 0 in JavaScript Date
+}
+
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const generateExcel = async () => {
@@ -51,6 +55,13 @@ const generateExcel = async () => {
                 month: "long",
             }).format(date);
 
+            const formattedDate = `${date.getFullYear()}-${String(
+                date.getMonth() + 1
+            ).padStart(2, "0")}`;
+            // You can now store this formatted date in a variable or array
+            // For example:
+            let yearMonth = formattedDate;
+
             // Get the year
             const year = date.getFullYear();
 
@@ -71,6 +82,12 @@ const generateExcel = async () => {
             worksheet.getCell("B2").value = headers[1];
             worksheet.getCell("C2").value = headers[2];
             worksheet.getCell("D2").value = headers[3];
+            worksheet.columns = [
+                { width: 10 }, // Column for WIL
+                { width: 10 }, // Column for ASET
+                { width: 15 }, // Column for KODE UNIT
+                { width: 15 }, // Column for NO UNIT
+            ];
 
             worksheet.mergeCells("A2:A3");
             worksheet.mergeCells("B2:B3");
@@ -81,6 +98,18 @@ const generateExcel = async () => {
             headerCells.forEach((cellAddress) => {
                 const cell = worksheet.getCell(cellAddress);
                 cell.alignment = { horizontal: "center", vertical: "middle" };
+                cell.fill = {
+                    type: "pattern",
+                    pattern: "solid",
+                    fgColor: { argb: "FF92D050" }, // Green background
+                };
+                cell.font = { bold: true }; // Make the text bold
+                cell.border = {
+                    top: { style: "medium", color: { argb: "FF000000" } },
+                    left: { style: "medium", color: { argb: "FF000000" } },
+                    bottom: { style: "medium", color: { argb: "FF000000" } },
+                    right: { style: "medium", color: { argb: "FF000000" } },
+                }; // Black border
             });
 
             // Set month header and merge cells E2 to end of month
@@ -94,24 +123,75 @@ const generateExcel = async () => {
             const endColumnLetter = numberToExcelColumn(endColumnNumber); // Convert to Excel column letter
 
             worksheet.mergeCells(`E2:${endColumnLetter}2`);
-            worksheet.getCell(
-                "E2"
-            ).value = `${monthName.toUpperCase()} ${year}`;
-            worksheet.getCell("E2").alignment = { horizontal: "center" };
-            worksheet.getCell("E2").font = { bold: true };
+            const monthCell = worksheet.getCell("E2");
+            monthCell.value = `${monthName.toUpperCase()} ${year}`;
+            monthCell.alignment = { horizontal: "center" };
+            monthCell.font = { bold: true }; // Make the text bold
+            monthCell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FF92D050" }, // Green background
+            };
+            monthCell.border = {
+                top: { style: "medium", color: { argb: "FF000000" } },
+                left: { style: "medium", color: { argb: "FF000000" } },
+                bottom: { style: "medium", color: { argb: "FF000000" } },
+                right: { style: "medium", color: { argb: "FF000000" } },
+            }; // Black border
 
             // Add date headers using props.dateUntilNow for the current month
             const monthNameKey = monthName.slice(0, 3); // Extract "Jan", "Feb", etc.
             const datesForMonth = props.dateUntilNow[monthNameKey];
 
             if (datesForMonth) {
+                const rowIndex = 3; // Row index where the dates are written
+                const row = worksheet.getRow(rowIndex);
+                row.height = 30;
+
                 Object.entries(datesForMonth).forEach(
                     ([day, dateValue], index) => {
                         const columnIndex = startDateColumn + index; // Adjust for the correct column
-                        worksheet.getCell(3, columnIndex).value = parseInt(day);
-                        worksheet.getCell(3, columnIndex).alignment = {
+                        const cell = worksheet.getCell(3, columnIndex);
+                        cell.value = parseInt(day);
+                        cell.alignment = {
                             horizontal: "center",
+                            vertical: "middle", // Center the value vertically
                         };
+
+                        cell.border = {
+                            top: {
+                                style: "medium",
+                                color: { argb: "FF000000" },
+                            }, // Black border
+                            left: {
+                                style: "medium",
+                                color: { argb: "FF000000" },
+                            },
+                            bottom: {
+                                style: "medium",
+                                color: { argb: "FF000000" },
+                            },
+                            right: {
+                                style: "medium",
+                                color: { argb: "FF000000" },
+                            },
+                        };
+
+                        // Check if the day is a Sunday
+                        const currentDate = new Date(dateValue);
+                        if (isSunday(currentDate)) {
+                            cell.fill = {
+                                type: "pattern",
+                                pattern: "solid",
+                                fgColor: { argb: "FFFF0000" }, // Red background for Sunday
+                            };
+                        } else {
+                            cell.fill = {
+                                type: "pattern",
+                                pattern: "solid",
+                                fgColor: { argb: "FF92D050" }, // Green background for other days
+                            };
+                        }
                     }
                 );
             } else {
@@ -146,8 +226,67 @@ const generateExcel = async () => {
                                                 ).value = key; // Set key in Column C
                                                 worksheet.getCell(
                                                     `D${rowIndex}`
-                                                ).value = item.no_unit || ""; // Set type in Column D
-                                                rowIndex++;
+                                                ).value = item.no_unit || ""; // Set no_unit in Column D
+
+                                                if (
+                                                    Array.isArray(item.data) &&
+                                                    item.data.length === 0
+                                                ) {
+                                                    worksheet.getCell(
+                                                        `E${rowIndex}`
+                                                    ).value = ""; // Leave Column E empty if data is empty
+                                                } else {
+                                                    // console.log(item.data); // Log the no_unit
+                                                    // worksheet.getCell(
+                                                    //     `E${rowIndex}`
+                                                    // ).value =
+                                                    //     "Data is not empty"; // Indicate data is not empty
+                                                    // const yearMonth = `${date.getFullYear()}-${String(
+                                                    //     date.getMonth() + 1
+                                                    // ).padStart(2, "0")}`;
+                                                    // console.log(yearMonth);
+                                                    // Example numberOfDays variable
+                                                    const numberOfDays = 31; // This should be dynamically set based on the actual days in the month
+
+                                                    // Loop through the number of days
+                                                    for (
+                                                        let day = 1;
+                                                        day <= numberOfDays;
+                                                        day++
+                                                    ) {
+                                                        // Create a date string in the format YYYY-MM-DD
+                                                        const fullDate = `${yearMonth}-${String(
+                                                            day
+                                                        ).padStart(2, "0")}`;
+
+                                                        const data = item.data;
+
+                                                        Object.keys(
+                                                            data
+                                                        ).forEach((key) => {
+                                                            if (
+                                                                key === fullDate
+                                                            ) {
+                                                                const columnIndex =
+                                                                    startDateColumn +
+                                                                    day -
+                                                                    1; // Adjust as neededconst
+
+                                                                const columnLetter =
+                                                                    numberToExcelColumn(
+                                                                        columnIndex
+                                                                    );
+
+                                                                worksheet.getCell(
+                                                                    `${columnLetter}${rowIndex}`
+                                                                ).value =
+                                                                    "Value exists"; // Fill with any value
+                                                            }
+                                                        });
+                                                    }
+                                                }
+
+                                                rowIndex++; // Increment rowIndex after processing each item
                                             });
                                         } else {
                                             console.warn(
@@ -193,18 +332,12 @@ const generateExcel = async () => {
             });
 
             // Set column widths
-            // worksheet.columns = [
-            //     { width: 15 }, // Column for WIL
-            //     { width: 20 }, // Column for ASET
-            //     { width: 20 }, // Column for KODE UNIT
-            //     { width: 20 }, // Column for NO UNIT
-            // ];
 
             // Freeze the first four columns
             worksheet.views = [{ state: "frozen", xSplit: 4 }];
         }
 
-        await delay(1500);
+        // await delay(1500);
         // Generate the Excel file
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: "application/octet-stream" });
@@ -221,7 +354,7 @@ const generateExcel = async () => {
         });
     } catch (error) {
         // Delay before emitting error toast
-        await delay(1500); // 2-second delay
+        // await delay(1500); // 2-second delay
 
         // Emit error toast
         emits("sendToast", {

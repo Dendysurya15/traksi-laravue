@@ -26,6 +26,13 @@ function numberToExcelColumn(number) {
     return column;
 }
 
+const extractNumber = (no_unit) => {
+    // Use a regular expression to match all digits in the string
+    const matches = no_unit.match(/\d+/g);
+    // Join all matched numbers into a single string or default to an empty string if no match is found
+    return matches ? matches.join("") : "";
+};
+
 function isSunday(date) {
     return date.getDay() === 0; // Sunday is 0 in JavaScript Date
 }
@@ -126,7 +133,8 @@ const generateExcel = async () => {
                     0
                 ).getDate(); // Number of days in the month
 
-                const endColumnNumber = 4 + numberOfDays; // Start from column E (5th column)
+                //tambah 1 untuk kolom total kerusakan
+                const endColumnNumber = 4 + numberOfDays + 1; // Start from column E (5th column)
                 const endColumnLetter = numberToExcelColumn(endColumnNumber); // Convert to Excel column letter
 
                 worksheet.mergeCells(`E2:${endColumnLetter}2`);
@@ -158,7 +166,10 @@ const generateExcel = async () => {
                     Object.entries(datesForMonth).forEach(
                         ([day, dateValue], index) => {
                             const columnIndex = startDateColumn + index; // Adjust for the correct column
-                            const cell = worksheet.getCell(3, columnIndex);
+                            const cell = worksheet.getCell(
+                                rowIndex,
+                                columnIndex
+                            );
                             cell.value = parseInt(day);
                             cell.alignment = {
                                 horizontal: "center",
@@ -205,6 +216,47 @@ const generateExcel = async () => {
                             }
                         }
                     );
+
+                    // Add the extra column for TOTAL KERUSAKAN after the loop
+                    const totalKerusakanColumnIndex =
+                        startDateColumn + Object.keys(datesForMonth).length;
+                    const totalKerusakanCell = worksheet.getCell(
+                        rowIndex,
+                        totalKerusakanColumnIndex
+                    );
+                    totalKerusakanCell.value = "TOTAL KERUSAKAN";
+                    totalKerusakanCell.alignment = {
+                        horizontal: "center",
+                        vertical: "middle", // Center the value vertically
+                        wrapText: true, // Enable text wrapping
+                    };
+                    totalKerusakanCell.fill = {
+                        type: "pattern",
+                        pattern: "solid",
+                        fgColor: { argb: "FF92D050" }, // Green background
+                    };
+                    totalKerusakanCell.font = {
+                        bold: true,
+                    };
+                    totalKerusakanCell.border = {
+                        top: {
+                            style: "medium",
+                            color: { argb: "FF000000" },
+                        }, // Black border
+                        left: {
+                            style: "medium",
+                            color: { argb: "FF000000" },
+                        },
+                        bottom: {
+                            style: "medium",
+                            color: { argb: "FF000000" },
+                        },
+                        right: {
+                            style: "medium",
+                            color: { argb: "FF000000" },
+                        },
+                    };
+                    worksheet.getColumn(totalKerusakanColumnIndex).width = 15;
                 } else {
                     console.warn(`No date data available for ${monthNameKey}`);
                 }
@@ -379,6 +431,7 @@ const generateExcel = async () => {
                                                         worksheet.getCell(
                                                             `${columnLetter}${rowIndex}`
                                                         );
+
                                                     cell.border = {
                                                         top: {
                                                             style: "medium",
@@ -428,10 +481,61 @@ const generateExcel = async () => {
                                                             pattern: "solid",
                                                             fgColor: {
                                                                 argb: "FFFF0000",
-                                                            },
+                                                            }, // Red background
                                                         };
                                                     }
                                                 }
+
+                                                // Add an extra column for item.jum_kerusakan_per_unit
+                                                const extraColumnIndex =
+                                                    startDateColumn +
+                                                    numberOfDays;
+                                                const extraColumnLetter =
+                                                    numberToExcelColumn(
+                                                        extraColumnIndex
+                                                    );
+                                                const extraCell =
+                                                    worksheet.getCell(
+                                                        `${extraColumnLetter}${rowIndex}`
+                                                    );
+
+                                                extraCell.value =
+                                                    item.jum_kerusakan_per_unit;
+                                                extraCell.alignment = {
+                                                    horizontal: "center",
+                                                    vertical: "middle", // Center the value vertically
+                                                    wrapText: true, // Enable text wrapping if needed
+                                                };
+                                                extraCell.font = {
+                                                    bold: true,
+                                                };
+
+                                                extraCell.border = {
+                                                    top: {
+                                                        style: "medium",
+                                                        color: {
+                                                            argb: "FF000000",
+                                                        },
+                                                    },
+                                                    left: {
+                                                        style: "medium",
+                                                        color: {
+                                                            argb: "FF000000",
+                                                        },
+                                                    },
+                                                    bottom: {
+                                                        style: "medium",
+                                                        color: {
+                                                            argb: "FF000000",
+                                                        },
+                                                    },
+                                                    right: {
+                                                        style: "medium",
+                                                        color: {
+                                                            argb: "FF000000",
+                                                        },
+                                                    },
+                                                };
 
                                                 rowIndex++; // Increment rowIndex after processing each item
                                             });
@@ -583,304 +687,6 @@ const generateExcel = async () => {
                         rowIndex++; // Move to the next row after total
                     });
                 });
-
-                // regWilEst.forEach((regional) => {
-                //     regional.wilayah.forEach((wilayah) => {
-                //         let wilayahStartRowIndex = rowIndex; // Start row index for the wilayah (Column A)
-
-                //         worksheet.getCell(`A${rowIndex}`).value = wilayah.nama;
-                //         worksheet.getCell(`A${rowIndex}`).alignment = {
-                //             horizontal: "center",
-                //             vertical: "middle",
-                //         };
-                //         worksheet.getCell(`A${rowIndex}`).font = {
-                //             bold: true,
-                //         };
-                //         worksheet.getCell(`A${rowIndex}`).fill = {
-                //             type: "pattern",
-                //             pattern: "solid",
-                //             fgColor: { argb: "FFF4B083" }, // Background color for Column A
-                //         };
-                //         worksheet.getCell(`A${rowIndex}`).border = {
-                //             top: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //             left: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //             bottom: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //             right: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //         };
-
-                //         wilayah.estate.forEach((estate) => {
-                //             let estateStartRowIndex = rowIndex; // Start row index for the estate (Column B)
-
-                //             worksheet.getCell(`B${rowIndex}`).value =
-                //                 estate.est;
-                //             worksheet.getCell(`B${rowIndex}`).alignment = {
-                //                 horizontal: "center",
-                //                 vertical: "middle",
-                //             };
-                //             worksheet.getCell(`B${rowIndex}`).font = {
-                //                 bold: true,
-                //             };
-                //             worksheet.getCell(`B${rowIndex}`).fill = {
-                //                 type: "pattern",
-                //                 pattern: "solid",
-                //                 fgColor: { argb: "FF9CC2E5" }, // Background color for Column B
-                //             };
-                //             worksheet.getCell(`B${rowIndex}`).border = {
-                //                 top: {
-                //                     style: "medium",
-                //                     color: { argb: "FF000000" },
-                //                 },
-                //                 left: {
-                //                     style: "medium",
-                //                     color: { argb: "FF000000" },
-                //                 },
-                //                 bottom: {
-                //                     style: "medium",
-                //                     color: { argb: "FF000000" },
-                //                 },
-                //                 right: {
-                //                     style: "medium",
-                //                     color: { argb: "FF000000" },
-                //                 },
-                //             };
-
-                //             if (
-                //                 estate.data &&
-                //                 typeof estate.data === "object"
-                //             ) {
-                //                 Object.entries(estate.data).forEach(
-                //                     ([key, items]) => {
-                //                         if (Array.isArray(items)) {
-                //                             items.forEach((item) => {
-                //                                 const fullDate = `${yearMonth}-${String(
-                //                                     day
-                //                                 ).padStart(2, "0")}`;
-                //                                 const columnIndex =
-                //                                     startDateColumn + day - 1;
-                //                                 const columnLetter =
-                //                                     numberToExcelColumn(
-                //                                         columnIndex
-                //                                     );
-
-                //                                 worksheet.getCell(
-                //                                     `${columnLetter}${rowIndex}`
-                //                                 ).value = key;
-                //                                 worksheet.getCell(
-                //                                     `${columnLetter}${rowIndex}`
-                //                                 ).border = {
-                //                                     top: {
-                //                                         style: "medium",
-                //                                         color: {
-                //                                             argb: "FF000000",
-                //                                         },
-                //                                     },
-                //                                     left: {
-                //                                         style: "medium",
-                //                                         color: {
-                //                                             argb: "FF000000",
-                //                                         },
-                //                                     },
-                //                                     bottom: {
-                //                                         style: "medium",
-                //                                         color: {
-                //                                             argb: "FF000000",
-                //                                         },
-                //                                     },
-                //                                     right: {
-                //                                         style: "medium",
-                //                                         color: {
-                //                                             argb: "FF000000",
-                //                                         },
-                //                                     },
-                //                                 };
-
-                //                                 worksheet.getCell(
-                //                                     `${columnLetter}${rowIndex}`
-                //                                 ).value =
-                //                                     item.jum_kerusakan || "";
-
-                //                                 // Fill with "P" if the item data has the fullDate key
-                //                                 if (
-                //                                     item.data &&
-                //                                     item.data[fullDate]
-                //                                 ) {
-                //                                     worksheet.getCell(
-                //                                         `${columnLetter}${rowIndex}`
-                //                                     ).value = "P";
-                //                                     worksheet.getCell(
-                //                                         `${columnLetter}${rowIndex}`
-                //                                     ).fill = {
-                //                                         type: "pattern",
-                //                                         pattern: "solid",
-                //                                         fgColor: {
-                //                                             argb: "FFFF0000",
-                //                                         }, // Red background
-                //                                     };
-                //                                 }
-
-                //                                 rowIndex++; // Increment rowIndex after processing each item
-                //                             });
-                //                         }
-                //                     }
-                //                 );
-
-                //                 // Merge cells in Column B for estate
-                //                 if (estateStartRowIndex < rowIndex - 1) {
-                //                     worksheet.mergeCells(
-                //                         `B${estateStartRowIndex}:B${
-                //                             rowIndex - 1
-                //                         }`
-                //                     );
-                //                 }
-
-                //                 // Add a total row after all items
-                //                 worksheet.getCell(`B${rowIndex}`).value =
-                //                     "TOTAL " + estate.est;
-                //                 worksheet.getCell(`B${rowIndex}`).fill = {
-                //                     type: "pattern",
-                //                     pattern: "solid",
-                //                     fgColor: { argb: "FF9CC2E5" }, // Background color for Column A
-                //                 };
-                //                 worksheet.mergeCells(
-                //                     `B${rowIndex}:C${rowIndex}`
-                //                 );
-                //                 worksheet.getCell(`B${rowIndex}`).alignment = {
-                //                     horizontal: "center",
-                //                 };
-                //                 worksheet.getCell(`B${rowIndex}`).font = {
-                //                     bold: true,
-                //                 };
-                //                 worksheet.getCell(`B${rowIndex}`).border = {
-                //                     top: {
-                //                         style: "medium",
-                //                         color: { argb: "FF000000" },
-                //                     },
-                //                     left: {
-                //                         style: "medium",
-                //                         color: { argb: "FF000000" },
-                //                     },
-                //                     bottom: {
-                //                         style: "medium",
-                //                         color: { argb: "FF000000" },
-                //                     },
-                //                     right: {
-                //                         style: "medium",
-                //                         color: { argb: "FF000000" },
-                //                     },
-                //                 };
-
-                //                 worksheet.getCell(`D${rowIndex}`).value =
-                //                     estate.total;
-                //                 worksheet.getCell(`D${rowIndex}`).alignment = {
-                //                     horizontal: "center",
-                //                 };
-                //                 worksheet.getCell(`D${rowIndex}`).font = {
-                //                     bold: true,
-                //                 };
-                //                 worksheet.getCell(`D${rowIndex}`).border = {
-                //                     top: {
-                //                         style: "medium",
-                //                         color: { argb: "FF000000" },
-                //                     },
-                //                     left: {
-                //                         style: "medium",
-                //                         color: { argb: "FF000000" },
-                //                     },
-                //                     bottom: {
-                //                         style: "medium",
-                //                         color: { argb: "FF000000" },
-                //                     },
-                //                     right: {
-                //                         style: "medium",
-                //                         color: { argb: "FF000000" },
-                //                     },
-                //                 };
-                //                 rowIndex++; // Move to the next row after total
-                //             }
-                //         });
-
-                //         // Merge cells in Column A for wilayah (region)
-                //         if (wilayahStartRowIndex < rowIndex - 1) {
-                //             worksheet.mergeCells(
-                //                 `A${wilayahStartRowIndex}:A${rowIndex - 1}`
-                //             );
-                //         }
-
-                //         // Add a total row after all items
-                //         worksheet.getCell(`A${rowIndex}`).value =
-                //             wilayah.nama.toUpperCase();
-                //         worksheet.getCell(`A${rowIndex}`).fill = {
-                //             type: "pattern",
-                //             pattern: "solid",
-                //             fgColor: { argb: "FFF4B083" }, // Background color for Column A
-                //         };
-                //         worksheet.mergeCells(`A${rowIndex}:C${rowIndex}`);
-                //         worksheet.getCell(`A${rowIndex}`).alignment = {
-                //             horizontal: "center",
-                //         };
-                //         worksheet.getCell(`A${rowIndex}`).font = {
-                //             bold: true,
-                //         };
-                //         worksheet.getCell(`A${rowIndex}`).border = {
-                //             top: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //             left: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //             bottom: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //             right: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //         };
-
-                //         worksheet.getCell(`D${rowIndex}`).value = wilayah.total;
-                //         worksheet.getCell(`D${rowIndex}`).alignment = {
-                //             horizontal: "center",
-                //         };
-
-                //         worksheet.getCell(`D${rowIndex}`).font = {
-                //             bold: true,
-                //         };
-                //         worksheet.getCell(`D${rowIndex}`).border = {
-                //             top: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //             left: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //             bottom: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //             right: {
-                //                 style: "medium",
-                //                 color: { argb: "FF000000" },
-                //             },
-                //         };
-                //         rowIndex++; // Move to the next row after total
-                //     });
-                // });
 
                 // Set column widths
 

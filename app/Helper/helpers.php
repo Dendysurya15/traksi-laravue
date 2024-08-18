@@ -161,28 +161,30 @@ if (!function_exists('get_all_data_each_unit')) {
             foreach ($region['wilayah'] as &$wilayah) {
                 foreach ($wilayah['estate'] as &$estate) {
                     $total = 0;
-                    foreach ($estate['data'] as $key => &$per_unit) {
 
-                        foreach ($per_unit as $key => &$value) {
+                    foreach ($estate['data'] as &$per_unit) {
+                        foreach ($per_unit as &$value) {
+                            // Extract the numeric part of 'no_unit'
                             $no_unit = preg_replace('/\D/', '', $value['no_unit']);
+                            $groupedData = $groupedArray[$value['kode']][$value['est']][$no_unit] ?? [];
 
-                            if (isset($groupedArray[$value['kode']][$value['est']][$no_unit])) {
+                            $value['data'] = $groupedData;
+                            $total_kerusakan_per_unit = 0;
 
-                                $value['data'] = $groupedArray[$value['kode']][$value['est']][$no_unit];
-                                foreach ($value['data'] as $key => $datas) {
-                                    // Decode the JSON string in 'kerusakan_unit'
-                                    $kerusakanUnit = json_decode($datas['kerusakan_unit'], true);
-                                    // Check if 'kerusakan_unit' is not empty
-                                    if (!empty($kerusakanUnit)) {
-                                        // Count the number of items in the 'kerusakan_unit' array
-                                        $total += count($kerusakanUnit);
-                                    }
+                            // Calculate 'jum_kerusakan_per_unit' and 'total'
+                            foreach ($groupedData as $datas) {
+                                $kerusakanUnit = json_decode($datas['kerusakan_unit'], true);
+
+                                if (!empty($kerusakanUnit)) {
+                                    $total_kerusakan_per_unit++;
+                                    $total += count($kerusakanUnit);
                                 }
-                            } else {
-                                $value['data'] = []; // or any default value you want
                             }
+
+                            $value['jum_kerusakan_per_unit'] = $total_kerusakan_per_unit;
                         }
                     }
+
                     $estate['jum_kerusakan'] = $total;
                 }
             }

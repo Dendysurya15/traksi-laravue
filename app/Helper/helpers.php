@@ -2,6 +2,7 @@
 
 use App\Models\KodeUnit;
 use App\Models\LaporanP2H;
+use App\Models\ListPertanyaan;
 use App\Models\Regional;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -61,6 +62,37 @@ if (!function_exists('get_reg_wil_est')) {
     }
 }
 
+if (!function_exists('processKerusakanUnit')) {
+    function processKerusakanUnit($query)
+    {
+        $listPertanyaan = ListPertanyaan::get()->keyBy('id')->toArray();
+
+        foreach ($query as $laporan) {
+            if (!empty($laporan->kerusakan_unit)) {
+                $kerusakanUnit = json_decode($laporan->kerusakan_unit, true);
+
+                if (is_array($kerusakanUnit)) {
+                    $newKerusakanUnit = [];
+
+                    foreach ($kerusakanUnit as $key => $value) {
+                        if (array_key_exists($key, $listPertanyaan)) {
+                            $newKerusakanUnit[] = $listPertanyaan[$key]['nama_pertanyaan'];
+                        }
+                    }
+
+                    $laporan->kerusakan_unit_part = json_encode($newKerusakanUnit);
+                } else {
+                    $laporan->kerusakan_unit_part = '';
+                }
+            } else {
+                $laporan->kerusakan_unit_part = '';
+            }
+        }
+
+        return $query;
+    }
+}
+
 if (!function_exists('get_lhp_unit')) {
     function get_lhp_unit()
     {
@@ -114,10 +146,11 @@ if (!function_exists('get_all_data_each_unit')) {
     function get_all_data_each_unit($query_reg_wil_est)
     {
 
+        $listPertanyaan = ListPertanyaan::get()->keyBy('id')->toArray();
+
         $query = LaporanP2H::get()->toArray();
 
-        // Transform the data
-        $transformed = Collection::make($query)->map(function ($item) {
+        $transformed = Collection::make($query)->map(function ($item) use ($listPertanyaan) {
             // Check if the 'jenis_unit' contains parentheses
             if (preg_match('/\((.*?)\)/', $item['jenis_unit'], $matches)) {
                 // Extract the value inside parentheses and convert to uppercase
@@ -133,6 +166,53 @@ if (!function_exists('get_all_data_each_unit')) {
             // Format 'tanggal_upload' to 'Y-m-d'
             $item['tanggal_upload_formatted'] = Carbon::parse($item['tanggal_upload'])->format('Y-m-d');
 
+            // Process 'kerusakan_unit' using the listPertanyaan
+            if (!empty($item['kerusakan_unit'])) {
+                $kerusakanUnit = json_decode($item['kerusakan_unit'], true);
+
+                if (is_array($kerusakanUnit)) {
+                    $newKerusakanUnit = [];
+
+                    foreach ($kerusakanUnit as $key => $value) {
+                        if (array_key_exists($key, $listPertanyaan)) {
+                            $newKerusakanUnit[] = $listPertanyaan[$key]['nama_pertanyaan'];
+                        }
+                    }
+
+                    $item['kerusakan_unit_part'] = implode(', ', $newKerusakanUnit);
+                } else {
+                    $item['kerusakan_unit_part'] = '';
+                }
+            } else {
+                $item['kerusakan_unit_part'] = '';
+            }
+
+            if (!empty($item['status_follow_up'])) {
+                $statusFollowUp = json_decode($item['status_follow_up'], true);
+                if (is_array($statusFollowUp) && isset($statusFollowUp['status'])) {
+                    $item['status_follow_up'] = [
+                        'status' => $statusFollowUp['status'] ?? false,
+                        'komentar' => $statusFollowUp['komentar'] ?? '',
+                        'userFollowUp' => $statusFollowUp['userFollowUp'] ?? '',
+                        'tanggal_submit' => $statusFollowUp['tanggal_submit'] ?? '',
+                    ];
+                } else {
+                    $item['status_follow_up'] = [
+                        'status' => false,
+                        'komentar' => '',
+                        'userFollowUp' => '',
+                        'tanggal_submit' => '',
+                    ];
+                }
+            } else {
+                $item['status_follow_up'] = [
+                    'status' => '',
+                    'komentar' => '',
+                    'userFollowUp' => '',
+                    'tanggal_submit' => '',
+                ];
+            }
+
             return $item;
         });
 
@@ -147,7 +227,6 @@ if (!function_exists('get_all_data_each_unit')) {
                 return $asetGroup->groupBy('kode_unit_modified')->map(function ($kodeUnitGroup) {
                     return $kodeUnitGroup->groupBy('tanggal_upload_formatted')->map(function ($dateGroup) {
                         // Flatten the dateGroup to a simple array of data items
-
                         return $dateGroup[0];
                     });
                 });
@@ -189,6 +268,7 @@ if (!function_exists('get_all_data_each_unit')) {
                 }
             }
         }
+
 
         return $query_reg_wil_est;
     }

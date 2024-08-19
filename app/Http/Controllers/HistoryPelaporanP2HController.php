@@ -19,33 +19,8 @@ class HistoryPelaporanP2HController extends Controller
     public function index(Request $request)
     {
         $query = LaporanP2H::paginate($request->input('paginate', 10));
-        $listPertanyaan = ListPertanyaan::get()->keyBy('id')->toArray();
 
-
-        foreach ($query as $laporan) {
-            if (!empty($laporan->kerusakan_unit)) {
-                $kerusakanUnit = json_decode($laporan->kerusakan_unit, true);
-
-                if (is_array($kerusakanUnit)) {
-                    // Initialize an array to hold the nama_pertanyaan
-                    $newKerusakanUnit = [];
-
-                    // Iterate over the decoded kerusakan_unit
-                    foreach ($kerusakanUnit as $key => $value) {
-                        if (array_key_exists($key, $listPertanyaan)) {
-                            $newKerusakanUnit[] = $listPertanyaan[$key]['nama_pertanyaan'];
-                        }
-                    }
-
-                    // Convert the new array back to JSON
-                    $laporan->kerusakan_unit_part = json_encode($newKerusakanUnit);
-                } else {
-                    $laporan->kerusakan_unit_part = '';
-                }
-            } else {
-                $laporan->kerusakan_unit_part = '';
-            }
-        }
+        $query = processKerusakanUnit($query);
 
         $queryRegWilEst = get_lhp_unit();
         $dateUntilNow = generate_dates();

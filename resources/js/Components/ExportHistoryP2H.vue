@@ -262,7 +262,7 @@ const generateExcel = async () => {
                 regWilEst.forEach((regional) => {
                     regional.wilayah.forEach((wilayah) => {
                         let wilayahStartRowIndex = rowIndex; // Start row index for the wilayah (Column A)
-                        let wilayahTotalPCount = 0; // Initialize the total count of "P" for the wilayah
+                        let wilayahTotalKerusakan = 0; // Initialize the total count of "P" for the wilayah
 
                         applyStyleCell(
                             "center",
@@ -273,7 +273,7 @@ const generateExcel = async () => {
 
                         wilayah.estate.forEach((estate) => {
                             let estateStartRowIndex = rowIndex; // Start row index for the estate (Column B)
-                            let estatePCount = 0; // Initialize the count of "P" for the estate
+                            let estateTotalKerusakan = 0; // Initialize the count of "P" for the estate
 
                             applyStyleCell(
                                 "center",
@@ -305,8 +305,6 @@ const generateExcel = async () => {
                                                     ),
                                                     item.no_unit || ""
                                                 );
-
-                                                let countP = 0; // Initialize the count for "P"
 
                                                 for (
                                                     let day = 1;
@@ -351,16 +349,30 @@ const generateExcel = async () => {
                                                         item.data &&
                                                         item.data[fullDate]
                                                     ) {
-                                                        cell.value = "P"; // Fill with "P"
-                                                        countP++; // Increment the count of "P"
-                                                        estatePCount++; // Increment the estate count of "P"
-                                                        cell.fill = {
-                                                            type: "pattern",
-                                                            pattern: "solid",
-                                                            fgColor: {
-                                                                argb: "FFFF0000",
-                                                            }, // Red background
-                                                        };
+                                                        const currentItem =
+                                                            item.data[fullDate];
+                                                        const statusFollowUp =
+                                                            currentItem.status_follow_up;
+                                                        const status =
+                                                            statusFollowUp.status;
+
+                                                        // Check if status is false or an empty string
+                                                        if (status === false) {
+                                                            cell.value = "P";
+                                                            cell.fill = {
+                                                                type: "pattern",
+                                                                pattern:
+                                                                    "solid",
+                                                                fgColor: {
+                                                                    argb: "FFFF0000",
+                                                                }, // Yellow background for Sundays
+                                                            };
+                                                        } else {
+                                                            cell.value =
+                                                                currentItem.kerusakan_unit_part; // or any other appropriate value or action
+                                                        }
+
+                                                        estateTotalKerusakan++;
                                                     }
                                                 }
 
@@ -407,48 +419,66 @@ const generateExcel = async () => {
                                 );
 
                                 // Add totals for each day in the extra column
-                                // for (let day = 1; day <= numberOfDays; day++) {
-                                //     const columnIndex =
-                                //         startDateColumn + day - 1;
-                                //     const columnLetter =
-                                //         numberToExcelColumn(columnIndex);
-                                //     const columnTotalCell = worksheet.getCell(
-                                //         `${columnLetter}${rowIndex}`
-                                //     );
-                                //     const countPInColumn = worksheet
-                                //         .getColumn(columnIndex)
-                                //         .values.filter(
-                                //             (value) => value === "P"
-                                //         ).length;
-                                //     applyStyleCell(
-                                //         "center",
-                                //         columnTotalCell,
-                                //         countPInColumn > 0 ? countPInColumn : ""
-                                //     );
-                                // }
+                                for (let day = 1; day <= numberOfDays; day++) {
+                                    const columnIndex =
+                                        startDateColumn + day - 1;
+                                    const columnLetter =
+                                        numberToExcelColumn(columnIndex);
+                                    const columnTotalCell = worksheet.getCell(
+                                        `${columnLetter}${rowIndex}`
+                                    );
 
-                                // Add extra column for total of "P" for the estate
-                                // const extraColumnIndex =
-                                //     startDateColumn + numberOfDays;
-                                // const extraColumnLetter =
-                                //     numberToExcelColumn(extraColumnIndex);
-                                // applyStyleCell(
-                                //     "center",
-                                //     worksheet.getCell(
-                                //         `${extraColumnLetter}${rowIndex}`
-                                //     ),
-                                //     estatePCount
-                                // );
+                                    // Count non-empty cells within the estate boundary
+                                    const countKerusakanInColumn = worksheet
+                                        .getColumn(columnIndex)
+                                        .values.slice(
+                                            estateStartRowIndex,
+                                            rowIndex - 1
+                                        )
+                                        .filter((value) => value != "").length;
+                                    const fullDate = `${yearMonth}-${String(
+                                        day
+                                    ).padStart(2, "0")}`;
+                                    const currentDate = new Date(fullDate);
+                                    const backgroundColor = isSunday(
+                                        currentDate
+                                    )
+                                        ? "FFF4B083"
+                                        : "FF9CC2E5";
+                                    applyStyleCell(
+                                        "center",
+                                        columnTotalCell,
+                                        countKerusakanInColumn > 0
+                                            ? countKerusakanInColumn
+                                            : "",
+                                        backgroundColor
+                                    );
+                                }
+
+                                // Add total for the extra column (Total Kerusakan)
+                                const extraColumnIndex =
+                                    startDateColumn + numberOfDays;
+                                const extraColumnLetter =
+                                    numberToExcelColumn(extraColumnIndex);
+                                applyStyleCell(
+                                    "center",
+                                    worksheet.getCell(
+                                        `${extraColumnLetter}${rowIndex}`
+                                    ),
+                                    estateTotalKerusakan,
+                                    "FF9CC2E5"
+                                );
 
                                 applyStyleCell(
                                     "center",
                                     worksheet.getCell(`D${rowIndex}`),
-                                    estate.total
+                                    estate.total,
+                                    "FF9CC2E5"
                                 );
                                 rowIndex++;
 
-                                // Add estate "P" count to wilayah total
-                                wilayahTotalPCount += estatePCount;
+                                // Add estateTotalKerusakan to wilayahTotalKerusakan
+                                wilayahTotalKerusakan += estateTotalKerusakan;
                             }
                         });
 
@@ -468,442 +498,57 @@ const generateExcel = async () => {
                         );
                         worksheet.mergeCells(`A${rowIndex}:C${rowIndex}`);
 
-                        // // Add totals for each day in the extra column for wilayah
-                        // for (let day = 1; day <= numberOfDays; day++) {
-                        //     const columnIndex = startDateColumn + day - 1;
-                        //     const columnLetter =
-                        //         numberToExcelColumn(columnIndex);
-                        //     const columnTotalCell = worksheet.getCell(
-                        //         `${columnLetter}${rowIndex}`
-                        //     );
-                        //     const countPInColumn = worksheet
-                        //         .getColumn(columnIndex)
-                        //         .values.filter((value) => value === "P").length;
-                        //     applyStyleCell(
-                        //         "center",
-                        //         columnTotalCell,
-                        //         countPInColumn > 0 ? countPInColumn : ""
-                        //     );
-                        // }
+                        // Add totals for each day in the extra column for wilayah
+                        for (let day = 1; day <= numberOfDays; day++) {
+                            const columnIndex = startDateColumn + day - 1;
+                            const columnLetter =
+                                numberToExcelColumn(columnIndex);
+                            const columnTotalCell = worksheet.getCell(
+                                `${columnLetter}${rowIndex}`
+                            );
 
-                        // Add extra column for total of "P" for the wilayah
-                        // const extraColumnIndex = startDateColumn + numberOfDays;
-                        // const extraColumnLetter =
-                        //     numberToExcelColumn(extraColumnIndex);
-                        // applyStyleCell(
-                        //     "center",
-                        //     worksheet.getCell(
-                        //         `${extraColumnLetter}${rowIndex}`
-                        //     ),
-                        //     wilayahTotalPCount
-                        // );
+                            // Count non-empty cells within the wilayah boundary
+                            const countKerusakanInColumn = worksheet
+                                .getColumn(columnIndex)
+                                .values.slice(
+                                    wilayahStartRowIndex,
+                                    rowIndex - 1
+                                )
+                                .filter(
+                                    (value) => value !== "" && isNaN(value)
+                                ).length;
+
+                            applyStyleCell(
+                                "center",
+                                columnTotalCell,
+                                countKerusakanInColumn > 0
+                                    ? countKerusakanInColumn
+                                    : "",
+                                "FFF4B083"
+                            );
+                        }
+
+                        const extraColumnIndex = startDateColumn + numberOfDays;
+                        const extraColumnLetter =
+                            numberToExcelColumn(extraColumnIndex);
+                        applyStyleCell(
+                            "center",
+                            worksheet.getCell(
+                                `${extraColumnLetter}${rowIndex}`
+                            ),
+                            wilayahTotalKerusakan,
+                            "FFF4B083"
+                        );
 
                         applyStyleCell(
                             "center",
                             worksheet.getCell(`D${rowIndex}`),
-                            wilayah.total
+                            wilayah.total,
+                            "FFF4B083"
                         );
                         rowIndex++; // Move to the next row after total
                     });
                 });
-
-                // regWilEst.forEach((regional) => {
-                //     regional.wilayah.forEach((wilayah) => {
-                //         let wilayahStartRowIndex = rowIndex; // Start row index for the wilayah (Column A)
-                //         let wilayahTotalPCount = 0; // Initialize the total count of "P" for the wilayah
-
-                //         applyStyleCell(
-                //             "center",
-                //             worksheet.getCell(`A${rowIndex}`),
-                //             wilayah.nama,
-                //             "FFF4B083"
-                //         );
-
-                //         wilayah.estate.forEach((estate) => {
-                //             let estateStartRowIndex = rowIndex; // Start row index for the estate (Column B)
-                //             let estatePCount = 0; // Initialize the count of "P" for the estate
-
-                //             applyStyleCell(
-                //                 "center",
-                //                 worksheet.getCell(`B${rowIndex}`),
-                //                 estate.est,
-                //                 "FF9CC2E5"
-                //             );
-
-                //             if (
-                //                 estate.data &&
-                //                 typeof estate.data === "object"
-                //             ) {
-                //                 Object.entries(estate.data).forEach(
-                //                     ([key, items]) => {
-                //                         if (Array.isArray(items)) {
-                //                             items.forEach((item) => {
-                //                                 applyStyleCell(
-                //                                     "center",
-                //                                     worksheet.getCell(
-                //                                         `C${rowIndex}`
-                //                                     ),
-                //                                     key
-                //                                 );
-
-                //                                 applyStyleCell(
-                //                                     "center",
-                //                                     worksheet.getCell(
-                //                                         `D${rowIndex}`
-                //                                     ),
-                //                                     item.no_unit || ""
-                //                                 );
-
-                //                                 let countP = 0; // Initialize the count for "P"
-
-                //                                 for (
-                //                                     let day = 1;
-                //                                     day <= numberOfDays;
-                //                                     day++
-                //                                 ) {
-                //                                     const fullDate = `${yearMonth}-${String(
-                //                                         day
-                //                                     ).padStart(2, "0")}`;
-                //                                     const columnIndex =
-                //                                         startDateColumn +
-                //                                         day -
-                //                                         1;
-                //                                     const columnLetter =
-                //                                         numberToExcelColumn(
-                //                                             columnIndex
-                //                                         );
-                //                                     const cell =
-                //                                         worksheet.getCell(
-                //                                             `${columnLetter}${rowIndex}`
-                //                                         );
-
-                //                                     applyStyleCell(
-                //                                         "center",
-                //                                         cell,
-                //                                         ""
-                //                                     );
-
-                //                                     const currentDate =
-                //                                         new Date(fullDate);
-                //                                     if (isSunday(currentDate)) {
-                //                                         cell.fill = {
-                //                                             type: "pattern",
-                //                                             pattern: "solid",
-                //                                             fgColor: {
-                //                                                 argb: "FFFFD965",
-                //                                             }, // Yellow background for Sundays
-                //                                         };
-                //                                     }
-
-                //                                     if (
-                //                                         item.data &&
-                //                                         item.data[fullDate]
-                //                                     ) {
-                //                                         cell.value = "P"; // Fill with "P"
-                //                                         countP++; // Increment the count of "P"
-                //                                         estatePCount++; // Increment the estate count of "P"
-                //                                         cell.fill = {
-                //                                             type: "pattern",
-                //                                             pattern: "solid",
-                //                                             fgColor: {
-                //                                                 argb: "FFFF0000",
-                //                                             }, // Red background
-                //                                         };
-                //                                     }
-                //                                 }
-
-                //                                 // Add an extra column for item.jum_kerusakan_per_unit
-                //                                 const extraColumnIndex =
-                //                                     startDateColumn +
-                //                                     numberOfDays;
-                //                                 const extraColumnLetter =
-                //                                     numberToExcelColumn(
-                //                                         extraColumnIndex
-                //                                     );
-                //                                 applyStyleCell(
-                //                                     "center",
-                //                                     worksheet.getCell(
-                //                                         `${extraColumnLetter}${rowIndex}`
-                //                                     ),
-                //                                     item.jum_kerusakan_per_unit
-                //                                 );
-
-                //                                 rowIndex++; // Increment rowIndex after processing each item
-                //                             });
-                //                         }
-                //                     }
-                //                 );
-
-                //                 // Merge cells in Column B for estate
-                //                 if (estateStartRowIndex < rowIndex - 1) {
-                //                     worksheet.mergeCells(
-                //                         `B${estateStartRowIndex}:B${
-                //                             rowIndex - 1
-                //                         }`
-                //                     );
-                //                 }
-
-                //                 // Add total row for estate
-                //                 applyStyleCell(
-                //                     "center",
-                //                     worksheet.getCell(`B${rowIndex}`),
-                //                     "TOTAL " + estate.est,
-                //                     "FF9CC2E5"
-                //                 );
-                //                 worksheet.mergeCells(
-                //                     `B${rowIndex}:C${rowIndex}`
-                //                 );
-
-                //                 // Summarize the "P" values in the total row
-                //                 for (let day = 1; day <= numberOfDays; day++) {
-                //                     const columnIndex =
-                //                         startDateColumn + day - 1;
-                //                     const columnLetter =
-                //                         numberToExcelColumn(columnIndex);
-                //                     const columnTotalCell = worksheet.getCell(
-                //                         `${columnLetter}${rowIndex}`
-                //                     );
-                //                     const countPInColumn = worksheet
-                //                         .getColumn(columnIndex)
-                //                         .values.filter(
-                //                             (value) => value === "P"
-                //                         ).length;
-                //                     applyStyleCell(
-                //                         "center",
-                //                         columnTotalCell,
-                //                         countPInColumn > 0 ? countPInColumn : ""
-                //                     );
-                //                 }
-
-                //                 applyStyleCell(
-                //                     "center",
-                //                     worksheet.getCell(`D${rowIndex}`),
-                //                     estate.total
-                //                 );
-                //                 rowIndex++;
-
-                //                 // Add estate "P" count to wilayah total
-                //                 wilayahTotalPCount += estatePCount;
-                //             }
-                //         });
-
-                //         // Merge cells in Column A for wilayah (region)
-                //         if (wilayahStartRowIndex < rowIndex - 1) {
-                //             worksheet.mergeCells(
-                //                 `A${wilayahStartRowIndex}:A${rowIndex - 1}`
-                //             );
-                //         }
-
-                //         // Add a total row after all items for wilayah
-                //         applyStyleCell(
-                //             "center",
-                //             worksheet.getCell(`A${rowIndex}`),
-                //             wilayah.nama.toUpperCase(),
-                //             "FFF4B083"
-                //         );
-                //         worksheet.mergeCells(`A${rowIndex}:C${rowIndex}`);
-
-                //         // Add total row for the count of "P" for wilayah
-                //         for (let day = 1; day <= numberOfDays; day++) {
-                //             const columnIndex = startDateColumn + day - 1;
-                //             const columnLetter =
-                //                 numberToExcelColumn(columnIndex);
-                //             const columnTotalCell = worksheet.getCell(
-                //                 `${columnLetter}${rowIndex}`
-                //             );
-                //             const countPInColumn = worksheet
-                //                 .getColumn(columnIndex)
-                //                 .values.filter((value) => value === "P").length;
-                //             applyStyleCell(
-                //                 "center",
-                //                 columnTotalCell,
-                //                 countPInColumn > 0 ? countPInColumn : ""
-                //             );
-                //         }
-
-                //         applyStyleCell(
-                //             "center",
-                //             worksheet.getCell(`D${rowIndex}`),
-                //             wilayahTotalPCount
-                //         );
-                //         rowIndex++; // Move to the next row after total
-                //     });
-                // });
-
-                // regWilEst.forEach((regional) => {
-                //     regional.wilayah.forEach((wilayah) => {
-                //         let wilayahStartRowIndex = rowIndex; // Start row index for the wilayah (Column A)
-
-                //         applyStyleCell(
-                //             "center",
-                //             worksheet.getCell(`A${rowIndex}`),
-                //             wilayah.nama,
-                //             "FFF4B083"
-                //         );
-
-                //         wilayah.estate.forEach((estate) => {
-                //             let estateStartRowIndex = rowIndex; // Start row index for the estate (Column B)
-
-                //             applyStyleCell(
-                //                 "center",
-                //                 worksheet.getCell(`B${rowIndex}`),
-                //                 estate.est,
-                //                 "FF9CC2E5"
-                //             );
-
-                //             if (
-                //                 estate.data &&
-                //                 typeof estate.data === "object"
-                //             ) {
-                //                 Object.entries(estate.data).forEach(
-                //                     ([key, items]) => {
-                //                         if (Array.isArray(items)) {
-                //                             items.forEach((item) => {
-                //                                 applyStyleCell(
-                //                                     "center",
-                //                                     worksheet.getCell(
-                //                                         `C${rowIndex}`
-                //                                     ),
-                //                                     key
-                //                                 );
-
-                //                                 applyStyleCell(
-                //                                     "center",
-                //                                     worksheet.getCell(
-                //                                         `D${rowIndex}`
-                //                                     ),
-                //                                     item.no_unit || ""
-                //                                 );
-
-                //                                 for (
-                //                                     let day = 1;
-                //                                     day <= numberOfDays;
-                //                                     day++
-                //                                 ) {
-                //                                     const fullDate = `${yearMonth}-${String(
-                //                                         day
-                //                                     ).padStart(2, "0")}`;
-                //                                     const columnIndex =
-                //                                         startDateColumn +
-                //                                         day -
-                //                                         1;
-                //                                     const columnLetter =
-                //                                         numberToExcelColumn(
-                //                                             columnIndex
-                //                                         );
-                //                                     const cell =
-                //                                         worksheet.getCell(
-                //                                             `${columnLetter}${rowIndex}`
-                //                                         );
-
-                //                                     applyStyleCell(
-                //                                         "center",
-                //                                         cell,
-                //                                         ""
-                //                                     );
-
-                //                                     const currentDate =
-                //                                         new Date(fullDate);
-                //                                     if (isSunday(currentDate)) {
-                //                                         cell.fill = {
-                //                                             type: "pattern",
-                //                                             pattern: "solid",
-                //                                             fgColor: {
-                //                                                 argb: "FFFFD965",
-                //                                             }, // Yellow background for Sundays
-                //                                         };
-                //                                     }
-
-                //                                     if (
-                //                                         item.data &&
-                //                                         item.data[fullDate]
-                //                                     ) {
-                //                                         cell.value = "P"; // Fill with any value
-                //                                         cell.fill = {
-                //                                             type: "pattern",
-                //                                             pattern: "solid",
-                //                                             fgColor: {
-                //                                                 argb: "FFFF0000",
-                //                                             }, // Red background
-                //                                         };
-                //                                     }
-                //                                 }
-
-                //                                 // Add an extra column for item.jum_kerusakan_per_unit
-                //                                 const extraColumnIndex =
-                //                                     startDateColumn +
-                //                                     numberOfDays;
-                //                                 const extraColumnLetter =
-                //                                     numberToExcelColumn(
-                //                                         extraColumnIndex
-                //                                     );
-                //                                 applyStyleCell(
-                //                                     "center",
-                //                                     worksheet.getCell(
-                //                                         `${extraColumnLetter}${rowIndex}`
-                //                                     ),
-                //                                     item.jum_kerusakan_per_unit
-                //                                 );
-
-                //                                 rowIndex++; // Increment rowIndex after processing each item
-                //                             });
-                //                         }
-                //                     }
-                //                 );
-
-                //                 // Merge cells in Column B for estate
-                //                 if (estateStartRowIndex < rowIndex - 1) {
-                //                     worksheet.mergeCells(
-                //                         `B${estateStartRowIndex}:B${
-                //                             rowIndex - 1
-                //                         }`
-                //                     );
-                //                 }
-
-                //                 // Add a total row after all items
-                //                 applyStyleCell(
-                //                     "center",
-                //                     worksheet.getCell(`B${rowIndex}`),
-                //                     "TOTAL " + estate.est,
-                //                     "FF9CC2E5"
-                //                 );
-                //                 worksheet.mergeCells(
-                //                     `B${rowIndex}:C${rowIndex}`
-                //                 );
-
-                //                 applyStyleCell(
-                //                     "center",
-                //                     worksheet.getCell(`D${rowIndex}`),
-                //                     estate.total
-                //                 );
-                //                 rowIndex++; // Move to the next row after total
-                //             }
-                //         });
-
-                //         // Merge cells in Column A for wilayah (region)
-                //         if (wilayahStartRowIndex < rowIndex - 1) {
-                //             worksheet.mergeCells(
-                //                 `A${wilayahStartRowIndex}:A${rowIndex - 1}`
-                //             );
-                //         }
-
-                //         // Add a total row after all items
-                //         applyStyleCell(
-                //             "center",
-                //             worksheet.getCell(`A${rowIndex}`),
-                //             wilayah.nama.toUpperCase(),
-                //             "FFF4B083"
-                //         );
-                //         worksheet.mergeCells(`A${rowIndex}:C${rowIndex}`);
-
-                //         applyStyleCell(
-                //             "center",
-                //             worksheet.getCell(`D${rowIndex}`),
-                //             wilayah.total
-                //         );
-                //         rowIndex++; // Move to the next row after total
-                //     });
-                // });
 
                 // Set column widths
 

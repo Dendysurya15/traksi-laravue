@@ -185,7 +185,7 @@ if (!function_exists('get_all_data_each_unit')) {
                         }
                     }
 
-                    $estate['jum_kerusakan'] = $total;
+                    // $estate['jum_kerusakan'] = $total;
                 }
             }
         }

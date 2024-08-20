@@ -22,7 +22,9 @@ class HistoryPelaporanP2HController extends Controller
 
         $query = processKerusakanUnit($query);
 
-        $queryRegWilEst = get_lhp_unit();
+        $query_lhp_alat_berat = get_lhp('alat_berat');
+        $query_lhp_unit = get_lhp('unit');
+
         $dateUntilNow = generate_dates();
         // Assuming you are working with the JenisUnit model
         $queryJenisUnit = JenisUnit::select(DB::raw("CONCAT(nama_unit, ' (', kode, ')') AS value"))
@@ -34,7 +36,8 @@ class HistoryPelaporanP2HController extends Controller
         return Inertia::render('Dashboard', [
             'data' => $query,
             'jenisUnit' => $queryJenisUnit,
-            'regWilEst' => $queryRegWilEst,
+            'lhp_alat_berat' => $query_lhp_alat_berat,
+            'lhp_unit' => $query_lhp_unit,
             'dateUntilNow' => $dateUntilNow
         ]);
     }

@@ -69,7 +69,8 @@ const props = defineProps<{
         total: number;
     };
     perPage: number;
-    regWilEst: [];
+    lhp_alat_berat: [];
+    lhp_unit: [];
     dateUntilNow: [];
 }>();
 
@@ -218,17 +219,21 @@ watch(globalFilter, (newValue) => {
             </div>
             <div class="flex justify-center gap-2">
                 <ExportHistoryP2H
-                    :title="'LHP ALAT BERAT'"
+                    :title="'LHP UNIT'"
                     :data="data"
-                    :regWilEst="props.regWilEst"
+                    :jenis="'unit'"
+                    :lhp="props.lhp_unit"
                     :dateUntilNow="props.dateUntilNow"
                     @sendToast="handleShowToast"
                 />
-                <!-- <ExportHistoryP2H
-                    :title="'LHP UNIT'"
+                <ExportHistoryP2H
+                    :title="'LHP ALAT BERAT'"
                     :data="data"
+                    :jenis="'alat_berat'"
+                    :lhp="props.lhp_alat_berat"
+                    :dateUntilNow="props.dateUntilNow"
                     @sendToast="handleShowToast"
-                /> -->
+                />
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
                         <Button variant="outline" class="ml-auto">

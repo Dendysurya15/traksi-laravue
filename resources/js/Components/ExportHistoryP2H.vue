@@ -7,7 +7,7 @@ import { IconFileExcel, IconLoaderQuarter } from "@tabler/icons-vue";
 // Define emits to send toast notifications
 const emits = defineEmits(["sendToast"]);
 
-const props = defineProps(["data", "title", "regWilEst", "dateUntilNow"]);
+const props = defineProps(["data", "title", "lhp", "dateUntilNow"]);
 
 // State for loading
 const loading = ref(false);
@@ -25,13 +25,6 @@ function numberToExcelColumn(number) {
 
     return column;
 }
-
-const extractNumber = (no_unit) => {
-    // Use a regular expression to match all digits in the string
-    const matches = no_unit.match(/\d+/g);
-    // Join all matched numbers into a single string or default to an empty string if no match is found
-    return matches ? matches.join("") : "";
-};
 
 function isSunday(date) {
     return date.getDay() === 0; // Sunday is 0 in JavaScript Date
@@ -145,7 +138,7 @@ const generateExcel = async () => {
                     monthCell,
                     `${monthName.toUpperCase()} ${year}`,
                     "FF92D050"
-                ); // Replace with your desired background color
+                );
 
                 // Add date headers using props.dateUntilNow for the current month
                 const monthNameKey = monthName.slice(0, 3); // Extract "Jan", "Feb", etc.
@@ -163,50 +156,17 @@ const generateExcel = async () => {
                                 rowIndex,
                                 columnIndex
                             );
-                            cell.value = parseInt(day);
-                            cell.alignment = {
-                                horizontal: "center",
-                                vertical: "middle", // Center the value vertically
-                            };
-
-                            cell.font = {
-                                bold: true,
-                            };
-
-                            cell.border = {
-                                top: {
-                                    style: "medium",
-                                    color: { argb: "FF000000" },
-                                }, // Black border
-                                left: {
-                                    style: "medium",
-                                    color: { argb: "FF000000" },
-                                },
-                                bottom: {
-                                    style: "medium",
-                                    color: { argb: "FF000000" },
-                                },
-                                right: {
-                                    style: "medium",
-                                    color: { argb: "FF000000" },
-                                },
-                            };
-
-                            // Check if the day is a Sunday
                             const currentDate = new Date(dateValue);
-                            if (isSunday(currentDate)) {
-                                cell.fill = {
-                                    type: "pattern",
-                                    pattern: "solid",
-                                    fgColor: { argb: "FFFF0000" }, // Red background for Sunday
-                                };
-                            } else {
-                                cell.fill = {
-                                    type: "pattern",
-                                    pattern: "solid",
-                                    fgColor: { argb: "FF92D050" }, // Green background for other days
-                                };
-                            }
+
+                            const backgroundColor = isSunday(currentDate)
+                                ? "FFFF0000"
+                                : "FF92D050"; // Red for Sundays, Green for other days
+                            applyStyleCell(
+                                "center",
+                                cell,
+                                parseInt(day),
+                                backgroundColor
+                            );
                         }
                     );
 
@@ -217,49 +177,27 @@ const generateExcel = async () => {
                         rowIndex,
                         totalKerusakanColumnIndex
                     );
-                    totalKerusakanCell.value = "TOTAL KERUSAKAN";
+                    applyStyleCell(
+                        "center",
+                        totalKerusakanCell,
+                        "TOTAL KERUSAKAN",
+                        "FF92D050"
+                    );
+                    worksheet.getColumn(totalKerusakanColumnIndex).width = 15;
                     totalKerusakanCell.alignment = {
                         horizontal: "center",
-                        vertical: "middle", // Center the value vertically
-                        wrapText: true, // Enable text wrapping
+                        wrapText: true,
                     };
-                    totalKerusakanCell.fill = {
-                        type: "pattern",
-                        pattern: "solid",
-                        fgColor: { argb: "FF92D050" }, // Green background
-                    };
-                    totalKerusakanCell.font = {
-                        bold: true,
-                    };
-                    totalKerusakanCell.border = {
-                        top: {
-                            style: "medium",
-                            color: { argb: "FF000000" },
-                        }, // Black border
-                        left: {
-                            style: "medium",
-                            color: { argb: "FF000000" },
-                        },
-                        bottom: {
-                            style: "medium",
-                            color: { argb: "FF000000" },
-                        },
-                        right: {
-                            style: "medium",
-                            color: { argb: "FF000000" },
-                        },
-                    };
-                    worksheet.getColumn(totalKerusakanColumnIndex).width = 15;
                 } else {
                     console.warn(`No date data available for ${monthNameKey}`);
                 }
 
-                const regWilEst = props.regWilEst; // Adjust this according to your actual data source
-                let rowIndex = 4; // Start from the row below headers
+                const regWilEstLHP = props.lhp; // Adjust this according to your actual data source
+                let rowIndex = 4;
 
                 worksheet.views = [{ state: "frozen", xSplit: 4, ySplit: 3 }];
 
-                regWilEst.forEach((regional) => {
+                regWilEstLHP.forEach((regional) => {
                     regional.wilayah.forEach((wilayah) => {
                         let wilayahStartRowIndex = rowIndex; // Start row index for the wilayah (Column A)
                         let wilayahTotalKerusakan = 0; // Initialize the total count of "P" for the wilayah
@@ -376,7 +314,35 @@ const generateExcel = async () => {
                                                     }
                                                 }
 
-                                                // Add an extra column for item.jum_kerusakan_per_unit
+                                                let nonEmptyNonNumericCount = 0;
+                                                for (
+                                                    let day = 1;
+                                                    day <= numberOfDays;
+                                                    day++
+                                                ) {
+                                                    const columnIndex =
+                                                        startDateColumn +
+                                                        day -
+                                                        1;
+                                                    const columnLetter =
+                                                        numberToExcelColumn(
+                                                            columnIndex
+                                                        );
+                                                    const cellValue =
+                                                        worksheet.getCell(
+                                                            `${columnLetter}${rowIndex}`
+                                                        ).value;
+
+                                                    // Check if the cell value is non-empty and non-numeric
+                                                    if (
+                                                        cellValue !== "" &&
+                                                        isNaN(cellValue)
+                                                    ) {
+                                                        nonEmptyNonNumericCount++;
+                                                    }
+                                                }
+
+                                                // Add the extra column with the count of non-empty and non-numeric cells
                                                 const extraColumnIndex =
                                                     startDateColumn +
                                                     numberOfDays;
@@ -389,7 +355,7 @@ const generateExcel = async () => {
                                                     worksheet.getCell(
                                                         `${extraColumnLetter}${rowIndex}`
                                                     ),
-                                                    item.jum_kerusakan_per_unit
+                                                    nonEmptyNonNumericCount
                                                 );
 
                                                 rowIndex++; // Increment rowIndex after processing each item
@@ -563,8 +529,9 @@ const generateExcel = async () => {
                 type: "application/octet-stream",
             });
             const link = document.createElement("a");
+            const currentYear = new Date().getFullYear(); // Get the current year
             link.href = URL.createObjectURL(blob);
-            link.download = "example.xlsx";
+            link.download = `${props.title} ${currentYear}.xlsx`; // Concatenate the title with the current year
             link.click();
 
             // Emit success toast

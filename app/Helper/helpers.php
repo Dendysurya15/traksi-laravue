@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\JenisUnit;
 use App\Models\KodeUnit;
 use App\Models\LaporanP2H;
 use App\Models\ListPertanyaan;
@@ -93,22 +94,13 @@ if (!function_exists('processKerusakanUnit')) {
     }
 }
 
-if (!function_exists('get_lhp_unit')) {
-    function get_lhp_unit()
+if (!function_exists('get_lhp')) {
+    function get_lhp($tipe_alat)
     {
 
 
         $query_reg_wil_est = get_reg_wil_est();
-        $query_list_unit = get_list_unit();
-        // $per_date = generate_dates();
-
-        // $query_all_data = data_all_until_now();
-
-        // $integrated_data = integrate_data_into_dates($per_date, $query_all_data);
-
-        $data = [];
-
-
+        $query_list_unit = get_list_unit($tipe_alat);
 
         foreach ($query_reg_wil_est as &$region) {
             foreach ($region['wilayah'] as &$wilayah) {
@@ -137,7 +129,9 @@ if (!function_exists('get_lhp_unit')) {
             }
         }
 
+
         $finalData = get_all_data_each_unit($query_reg_wil_est);
+
 
         return $finalData;
     }
@@ -301,43 +295,57 @@ if (!function_exists('integrate_data_into_dates')) {
         return $formatted_dates;
     }
 }
+
+
 if (!function_exists('get_list_unit')) {
-    function get_list_unit()
+    function get_list_unit($tipe_alat)
     {
+        // Fetch all KodeUnit data
+        $raw_query = KodeUnit::all();
 
-        // Fetch the data
-        $raw_query = KodeUnit::get()->toArray();
+        // Normalize 'kode' and other values
+        $normalized_query = $raw_query->map(function ($item) {
+            $item['kode'] = trim($item['kode']);
+            $item['est'] = trim($item['est']);
+            $item['type'] = trim($item['type']);
+            $item['tahun'] = trim($item['tahun']);
+            $item['no_unit'] = trim($item['no_unit']);
+            return $item;
+        });
 
-        // Normalize 'est' and 'kode' values, then group by 'est' and 'kode'
-        $normalized_query = collect($raw_query)
-            ->map(function ($item) {
-                // Trim spaces from 'est' and 'kode' values
-                $item['est'] = trim($item['est']);
-                $item['kode'] = trim($item['kode']);
-                $item['type'] = trim($item['type']);
-                $item['tahun'] = trim($item['tahun']);
-                $item['no_unit'] = trim($item['no_unit']);
-                return $item;
-            })
-            ->groupBy('est')
+        // Convert the collection back to a model collection after normalization
+        $kodeUnitCollection = KodeUnit::hydrate($normalized_query->toArray());
+
+        // Preload all JenisUnit data and map it by 'kode', filtered by $tipe_alat
+        $jenisUnitMap = JenisUnit::where('tipe_alat', $tipe_alat)->get()->keyBy(function ($item) {
+            return trim($item->kode);
+        });
+
+        // Now, associate each KodeUnit with the corresponding JenisUnit, converting to array
+        $normalized_query_with_relation = $kodeUnitCollection->map(function ($item) use ($jenisUnitMap) {
+            $item->jenisUnit = $jenisUnitMap->get($item->kode) ? $jenisUnitMap->get($item->kode)->toArray() : null; // Convert to array
+            return $item;
+        });
+
+        // Filter out KodeUnit items that do not have a matching JenisUnit (if any)
+        $filtered_query_with_relation = $normalized_query_with_relation->filter(function ($item) {
+            return !is_null($item->jenisUnit);
+        });
+
+        // Group by 'est', then by 'kode', and sort both levels
+        $final_result = $filtered_query_with_relation->groupBy('est')
             ->map(function ($estGroup) {
-                // Within each 'est' group, group by 'kode'
                 $groupedByKode = $estGroup->groupBy('kode')->toArray();
-                // Sort the groups by 'kode'
                 ksort($groupedByKode);
                 return $groupedByKode;
             })
-            ->sortKeys() // Optionally, sort groups by 'est' if needed
+            ->sortKeys()
             ->toArray();
 
-        // Output or use the $normalized_query as needed
-
-
-        // Output or use the $normalized_query as needed
-
-        return $normalized_query;
+        return $final_result;
     }
 }
+
 
 if (!function_exists('generate_dates')) {
     function generate_dates()

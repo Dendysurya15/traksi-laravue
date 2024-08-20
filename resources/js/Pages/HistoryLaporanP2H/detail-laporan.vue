@@ -12,7 +12,7 @@ import {
     CarouselNext,
     CarouselPrevious,
 } from "@/Components/ui/carousel";
-import { Head } from "@inertiajs/vue3";
+import { Head, usePage } from "@inertiajs/vue3";
 import { LaporanP2H } from "@/types/laporanP2h";
 import DialogFuKerusakan from "@/Components/DialogFuKerusakan.vue";
 import { ref, computed, onUnmounted } from "vue";
@@ -87,6 +87,12 @@ const statusFollowUpObject = computed(() => {
     }
     return {};
 });
+
+const page = usePage();
+const user = page.props.auth.user;
+const shouldShowDialogs = computed(() =>
+    ["Askep", "Admin", "Manager"].includes(user.jabatan)
+);
 
 const fetchingDataFU = ref(false);
 const fetchErrorFU = ref(null); // Add a new ref to store the error message
@@ -720,7 +726,13 @@ function checkImages() {
                         <!-- ... (existing code) -->
 
                         <div class="flex justify-end gap-4 mt-3">
-                            <template v-if="data.status_follow_up === null">
+                            <template
+                                <template
+                                v-if="
+                                    shouldShowDialogs &&
+                                    data.status_follow_up === null
+                                "
+                            >
                                 <DialogFuKerusakan
                                     :textButton="'Unit Tidak Dapat Digunakan!'"
                                     :confirmFu="false"

@@ -22,8 +22,8 @@ class HistoryPelaporanP2HController extends Controller
 
         $query = processKerusakanUnit($query);
 
-        $query_lhp_alat_berat = get_lhp('alat_berat');
         $query_lhp_unit = get_lhp('unit');
+        $query_lhp_alat_berat = get_lhp('alat_berat');
 
         $dateUntilNow = generate_dates();
         // Assuming you are working with the JenisUnit model

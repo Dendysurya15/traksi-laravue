@@ -155,7 +155,7 @@ if (!function_exists('get_all_data_each_unit')) {
             }
 
             // Remove letters from 'kode_unit', keep only numbers
-            $item['kode_unit_modified'] = preg_replace('/\D/', '', $item['kode_unit']);
+            $item['kode_unit_modified'] =  $item['kode_unit'];
 
             // Format 'tanggal_upload' to 'Y-m-d'
             $item['tanggal_upload_formatted'] = Carbon::parse($item['tanggal_upload'])->format('Y-m-d');
@@ -238,8 +238,9 @@ if (!function_exists('get_all_data_each_unit')) {
                     foreach ($estate['data'] as &$per_unit) {
                         foreach ($per_unit as &$value) {
                             // Extract the numeric part of 'no_unit'
-                            $no_unit = preg_replace('/\D/', '', $value['no_unit']);
-                            $groupedData = $groupedArray[$value['kode']][$value['est']][$no_unit] ?? [];
+                            $kode_unit = $value['type'] . ' ' . $value['no_unit'];
+
+                            $groupedData = $groupedArray[$value['kode']][$value['est']][$kode_unit] ?? [];
 
                             $value['data'] = $groupedData;
                             $total_kerusakan_per_unit = 0;

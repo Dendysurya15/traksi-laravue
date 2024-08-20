@@ -375,7 +375,8 @@ if (!function_exists('generate_dates')) {
                 continue;
             }
 
-            $daysInMonth = cal_days_in_month(CAL_GREGORIAN, (int)$monthNumber, $currentYear);
+            $date = new DateTime("{$currentYear}-{$monthNumber}-01");
+            $daysInMonth = $date->format('t'); // Get the number of days in the month
 
             $dates[$shortMonth] = [];
             for ($day = 1; $day <= $daysInMonth; $day++) {
@@ -389,6 +390,7 @@ if (!function_exists('generate_dates')) {
         return $dates;
     }
 }
+
 
 if (!function_exists('data_all_until_now')) {
     function data_all_until_now()

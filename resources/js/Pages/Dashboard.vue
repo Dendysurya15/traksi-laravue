@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import { Head, usePage } from "@inertiajs/vue3";
-import { ref, onMounted, watch, computed } from "vue";
+import { Head } from "@inertiajs/vue3";
+import { ref, onMounted, watch } from "vue";
 import axios from "axios";
 import { Skeleton } from "@/Components/ui/skeleton";
 import { useAxios } from "@vueuse/integrations/useAxios";
@@ -21,7 +21,6 @@ import { id } from "date-fns/locale";
 import {
     ArrowPathIcon,
     ExclamationTriangleIcon,
-    SignalSlashIcon,
 } from "@heroicons/vue/24/solid";
 import ChartHistoryP2H from "@/Components/ChartHistoryP2H.vue";
 
@@ -30,14 +29,11 @@ const date = ref();
 const formatVueDatePicker = (date) => {
     return "";
 };
-const page = usePage();
-const user = page.props.auth.user;
 const optionsDefault = [
     { value: "Minggu", label: "Per Minggu" },
     { value: "Bulan", label: "Per Bulan" },
     { value: "Tahun", label: "Per Tahun" },
 ];
-
 const optionsTahun = [{ value: "2024", label: "2024" }];
 const props = defineProps<{
     data: LaporanP2H[];
@@ -46,10 +42,8 @@ const props = defineProps<{
     lhp_alat_berat;
     dateUntilNow;
 }>();
-
 const jenisUnit = ref(props.jenisUnit);
 const data = ref<LaporanP2H[]>(props.data);
-
 const optionsJenisUnit = jenisUnit.value.map((unit: any) => ({
     value: unit, // Replace with the correct property name if different
     label: unit, // Replace with the correct property name if different
@@ -60,13 +54,34 @@ const live_tanggal = useDateFormat(useNow(), "dddd, D MMM YYYY  HH:mm:ss", {
 const typeContentData = ref("");
 const detailContentData = ref(null);
 const isDetailContent = ref(false);
-const listRegional = ref<any[]>([]);
 const pagination = ref<PaginationMeta>({
     current_page: 1,
     last_page: 1,
     per_page: 10,
     total: 0,
 });
+const activeFilter = ref(null);
+const isFetchingData = ref(true);
+const errorFetching = ref<string | null>(null);
+const childRefFilterSelectOption = ref(null);
+const arrSemuaFilter = ref([]);
+const updatedSeries = ref([]);
+const updatedXAxisCategories = ref([]);
+const isChartDataLoading = ref(false);
+const defaultChartOption = ref("Minggu");
+const selectOptionFilterArr = ref([]);
+const isResetAllOptionFilter = ref(false);
+const series = ref(updatedSeries.value);
+const clearAllFilters = () => {
+    activeFilter.value = [];
+    activeFilterType.value = null;
+    date.value = null;
+    selectOptionFilterArr.value = [];
+    isResetAllOptionFilter.value = true;
+    childRefFilterSelectOption.value.forEach((ref) => {
+        ref.resetSelectedOption();
+    });
+};
 
 const handleDateRangeSelection = (selectedRange) => {
     if (selectedRange === null) {
@@ -86,7 +101,6 @@ const handleDateRangeSelection = (selectedRange) => {
         selectOption(99, formatDateRange(selectedRange), "dateRange");
     }
 };
-
 const isValidDateRange = (dateRange) => {
     const dateFormat = "d MMMM yyyy";
 
@@ -143,38 +157,23 @@ const clearActiveFilter = (filter) => {
             delete arrSemuaFilter.value[filter];
         }
     }
-    // else if (activeFilterType.value === "dateRange") {
-    //     // Clear the date filter
-    //     activeFilter.value = [];
-    //     activeFilterType.value = null;
-    //     date.value = null;
-
-    //     if (datePickerRef.value) {
-    //         datePickerRef.value.resetSelectedOption();
-    //     }
-    // }
 
     fetchChartData();
 };
-
-const clearAllFilters = () => {
-    // Clear all active filters and reset states
-    activeFilter.value = [];
-    activeFilterType.value = null;
-    date.value = null;
-    // Reset selectOptionFilterArr
-    selectOptionFilterArr.value = [];
-    isResetAllOptionFilter.value = true;
-
-    childRefFilterSelectOption.value.forEach((ref) => {
-        ref.resetSelectedOption(); // Ensure the method exists in your component
-    });
-};
-
-const activeFilter = ref(null);
-const isFetchingData = ref(true);
-const errorFetching = ref<string | null>(null);
-
+const filterComponents = [
+    {
+        type: "timeline",
+        defaultSelect: defaultChartOption.value,
+        options: optionsDefault,
+        placeholder: "Filter Chart",
+    },
+    {
+        type: "jenis_unit",
+        defaultSelect: "",
+        options: optionsJenisUnit,
+        placeholder: "Filter Jenis Unit",
+    },
+];
 const formatDateRange = (dateRange) => {
     if (!dateRange || dateRange.length !== 2) {
         return "Date Range";
@@ -189,30 +188,6 @@ const formatDateRange = (dateRange) => {
 
     return `${formattedStartDate} - ${formattedEndDate}`;
 };
-const childRefFilterSelectOption = ref(null);
-const arrSemuaFilter = ref([]);
-
-const updatedSeries = ref([]);
-const updatedXAxisCategories = ref([]);
-const isChartDataLoading = ref(false);
-const filterComponents = [
-    {
-        type: "timeline",
-        defaultSelect: "Minggu",
-        options: optionsDefault,
-        placeholder: "Filter Chart",
-    },
-    {
-        type: "jenis_unit",
-        defaultSelect: "",
-        options: optionsJenisUnit,
-        placeholder: "Filter Jenis Unit",
-    },
-];
-
-const filterSelectRefs = ref([]);
-const selectOptionFilterArr = ref([]);
-
 const parseDateRangeSelectOption = (dateRange) => {
     // Split the dateRange string into start and end dates
 
@@ -229,7 +204,6 @@ const parseDateRangeSelectOption = (dateRange) => {
 
     return { startDate, endDate };
 };
-const isResetAllOptionFilter = ref(false);
 async function fetchChartData() {
     try {
         isChartDataLoading.value = true; // Set loading state to true
@@ -251,14 +225,6 @@ async function fetchChartData() {
                 }
             });
         }
-        // else if (activeFilterType.value === "date") {
-        //     // Include the selected date range as parameters
-        //     const [startDate, endDate] = date.value;
-        //     params.startDate = startDate ? formatDate(startDate) : null;
-        //     params.endDate = endDate ? formatDate(endDate) : null;
-        // }
-
-        // await new Promise((resolve) => setTimeout(resolve, 1000));
 
         const { data: chartData, error: isError } = await useAxios(
             "/fetch-chart-history-p2h",
@@ -283,9 +249,6 @@ async function fetchChartData() {
         isChartDataLoading.value = false; // Set loading state to false
     }
 }
-
-const series = ref(updatedSeries.value);
-
 watch([updatedSeries, updatedXAxisCategories], ([newSeries]) => {
     if (newSeries !== series.value) {
         series.value = newSeries;
@@ -299,23 +262,6 @@ function formatDate(date) {
 
     return `${year}-${month}-${day}`;
 }
-
-// async function fetchListRegional() {
-//     try {
-//         axios.defaults.headers.common[
-//             "Authorization"
-//         ] = `Bearer ${user.api_token}`;
-
-//         const response = await axios.get(
-//             "https://auth.srs-ssms.com/api/listRegional"
-//         );
-
-//         console.log(response.data);
-//         listRegional.value = response.data; // Update the local state
-//     } catch (additionalError) {
-//         console.error("Error fetching list regional data:", additionalError);
-//     }
-// }
 
 async function getData(page = 1, paginate = 10): Promise<void> {
     try {
@@ -417,15 +363,15 @@ const selectOption = (index, option, filterType) => {
             (item) => item.value
         );
     }
-
     fetchChartData();
 };
 
 onMounted(async () => {
     await getData();
-    // const startDate = new Date();
-    // const endDate = new Date(new Date().setDate(startDate.getDate() + 7));
-    // date.value = [startDate, null];
+    selectOption(0, defaultChartOption, "timeline");
+    childRefFilterSelectOption.value.forEach((ref) => {
+        ref.selectDefaultOption(); // Ensure the method exists in your component
+    });
 });
 
 function actionStateTableTrigger() {

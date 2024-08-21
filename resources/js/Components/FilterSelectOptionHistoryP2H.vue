@@ -85,6 +85,17 @@ export default defineComponent({
             selectedOption.value = null;
         };
 
+        const selectDefaultOption = () => {
+            if (props.defaultSelect) {
+                const optionToSelect = props.options.find(
+                    (option) => option.value === props.defaultSelect
+                );
+                if (optionToSelect) {
+                    selectOption(optionToSelect);
+                }
+            }
+        };
+
         const handleClickOutside = (event) => {
             if (dropdown.value && !dropdown.value.contains(event.target)) {
                 showOptions.value = false;
@@ -106,6 +117,7 @@ export default defineComponent({
             toggleOptions,
             selectOption,
             resetSelectedOption,
+            selectDefaultOption,
             placeholder: props.placeholder,
             dropdown,
         };

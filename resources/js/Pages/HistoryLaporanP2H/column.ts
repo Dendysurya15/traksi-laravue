@@ -186,8 +186,17 @@ export const columns: ColumnDef<LaporanP2H>[] = [
                     h(ArrowsUpDownIcon, { class: "ml-2 h-4 w-4" }),
                 ]
             ),
-        cell: ({ row }) =>
-            h("div", { class: "lowercase" }, row.getValue("jenis_unit")),
+        cell: ({ row }) => {
+            let jenisUnitValue = row.getValue("jenis_unit") as string;
+            const lowerCaseValue = jenisUnitValue.toLowerCase();
+            if (lowerCaseValue.includes("hino crane")) {
+                jenisUnitValue = jenisUnitValue
+                    .toUpperCase()
+                    .replace("CRANE", "")
+                    .trim();
+            }
+            return h("div", { class: "" }, jenisUnitValue);
+        },
     },
     {
         accessorKey: "kode_unit",
